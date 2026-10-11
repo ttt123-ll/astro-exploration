@@ -1,0 +1,9 @@
+页边距: 上3.00 下2.00 左3.00 右2.50 纸宽21.0 纸高29.7
+样式[Normal]: 字体=等线 中文字体=None 字号=12.0pt 粗=None 对齐=JUSTIFY (3) 行距=1.5 首行缩进=406400
+样式[Heading 1]: 字体=None 中文字体=None 字号=22.0pt 粗=True 对齐=None 行距=2.408333333333333 首行缩进=None
+样式[Heading 2]: 字体=Arial 中文字体=黑体 字号=16.0pt 粗=True 对齐=None 行距=1.7333333333333334 首行缩进=None
+样式[Heading 3]: 字体=None 中文字体=None 字号=16.0pt 粗=True 对齐=None 行距=1.7333333333333334 首行缩进=None
+样式[Heading 4]: 字体=Arial 中文字体=黑体 字号=14.0pt 粗=True 对齐=None 行距=1.5666666666666667 首行缩进=None
+样式[Heading 5]: 字体=None 中文字体=None 字号=14.0pt 粗=True 对齐=None 行距=1.5666666666666667 首行缩进=None
+样式[Body Text]: 字体=None 中文字体=None 字号=Nonept 粗=None 对齐=None 行距=None 首行缩进=None
+样式[Body Text Indent]: 字体=宋体 中文字体=None 字号=Nonept 粗=None 对齐=LEFT (0) 行距=None 首行缩进=None
