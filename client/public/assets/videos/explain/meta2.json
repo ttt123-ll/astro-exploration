@@ -1,0 +1,17 @@
+[
+  {
+    "name": "explain_moon",
+    "title": "NASA Searches for Life from the Moon in Recently Rediscovered Historic Footage",
+    "src": "/assets/videos/explain/explain_moon.mp4"
+  },
+  {
+    "name": "explain_mars",
+    "title": "NASA’S Perseverance Rover’s First 360 View of Mars",
+    "src": "/assets/videos/explain/explain_mars.mp4"
+  },
+  {
+    "name": "explain_sun",
+    "title": "Solar Highlights of 2016/2017: Sunspot Turn Toward Earth",
+    "src": "/assets/videos/explain/explain_sun.mp4"
+  }
+]
