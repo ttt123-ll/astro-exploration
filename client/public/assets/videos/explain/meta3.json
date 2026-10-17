@@ -1,0 +1,51 @@
+[
+  {
+    "name": "explain_jupiter",
+    "title": "Europa Clipper: NASA’s Mission to Jupiter's Ocean Moon (Mission Trailer)",
+    "topics": [
+      "solar",
+      "planet"
+    ]
+  },
+  {
+    "name": "explain_saturn",
+    "title": "KSC-04-S-00195",
+    "topics": [
+      "solar",
+      "planet"
+    ]
+  },
+  {
+    "name": "explain_galaxy",
+    "title": "SOFIA Reveals New View of Milky Way’s Center",
+    "topics": [
+      "galaxy",
+      "gallery",
+      "deepspace"
+    ]
+  },
+  {
+    "name": "explain_supernova",
+    "title": "IXPE Polarization",
+    "topics": [
+      "star",
+      "deepspace"
+    ]
+  },
+  {
+    "name": "explain_universe",
+    "title": "KSC-04-S-00174",
+    "topics": [
+      "timeline",
+      "deepspace"
+    ]
+  },
+  {
+    "name": "explain_sky",
+    "title": "Mars After Dark: What NASA Rovers Really See",
+    "topics": [
+      "constellation",
+      "star"
+    ]
+  }
+]
