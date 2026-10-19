@@ -1,0 +1,32 @@
+# 依赖与产物（容器内会重新安装/构建）
+**/node_modules
+**/dist
+
+# 日志与临时文件
+**/*.log
+**/_t_*.log
+**/_tmp_*
+
+# 版本控制
+**/.git
+
+# 截图与离线包（体积大且与镜像无关）
+shot
+shots
+docker-dist
+
+# 密钥：绝不能打进镜像
+.env
+.env.*
+!.env.example
+
+# 本地启动脚本
+start.bat
+start-db.bat
+stop-db.bat
+
+# 构建相关文件本身
+Dockerfile
+docker-compose.yml
+docker-compose.offline.yml
+.dockerignore
