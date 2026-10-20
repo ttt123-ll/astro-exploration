@@ -130,7 +130,7 @@ const verify = [
         <div class="sys-card" style="margin-top:1.6rem;">
             <h3 class="admin-h"><i class="fas fa-shield-halved"></i> 版权声明</h3>
             <p style="color:var(--color-text-secondary);line-height:2;font-size:0.94rem;">
-                本站为教学与科普用途的毕业设计作品，所有第三方素材均来自公有领域或开放授权渠道，
+                本站为「传智杯」参赛作品，仅用于教学与科普演示，所有第三方素材均来自公有领域或开放授权渠道，
                 并已在页面中保留来源标注，未用于任何商业用途。NASA 素材使用遵循
                 <a href="https://www.nasa.gov/nasa-brand-center/images-and-media/" target="_blank" rel="noopener" style="color:var(--color-cyan);">NASA 媒体使用指南</a>；
                 SolarSystemScope 贴图遵循 CC BY 4.0 授权；Font Awesome 遵循其开源许可。

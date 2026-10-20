@@ -1,4 +1,4 @@
-// 生成网站截图：静态网站 8 个页面 → PNG（用于毕业设计说明书第四章）
+// 生成网站截图：静态网站页面 → PNG（用于作品说明文档配图）
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
