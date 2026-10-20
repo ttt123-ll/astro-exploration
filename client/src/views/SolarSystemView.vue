@@ -2,6 +2,7 @@
 import planets from '../data/planets';
 import VideoSection from '../components/VideoSection.vue';
 import PageNav from '../components/PageNav.vue';
+import BookSection from '../components/BookSection.vue';
 const key = p => (p.englishName || '').toLowerCase();
 const fmt = n => Number(n).toLocaleString('zh-CN');
 </script>
@@ -46,6 +47,7 @@ const fmt = n => Number(n).toLocaleString('zh-CN');
         </div>
 
         <VideoSection topic="solar" title="太阳系科普视频" />
+        <BookSection topic="solar" />
     </div>
 </template>
 

@@ -1,5 +1,6 @@
 <script setup>
 import { useUi } from '../store/ui';
+import BookSection from '../components/BookSection.vue';
 const ui = useUi();
 </script>
 
@@ -30,5 +31,7 @@ const ui = useUi();
                 默认管理员：admin / admin123
             </div>
         </div>
+
+        <BookSection topic="download" />
     </div>
 </template>

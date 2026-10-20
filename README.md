@@ -404,6 +404,7 @@ chore: 构建/工具  perf: 性能优化
 | `tools/verify-apod.js` | 今日天文图片位置与轮播 | 8 |
 | `tools/verify-facts.js` | 四季星座页区块 | 13 |
 | `tools/verify-scrollback.js` | 返回首页滚动位置恢复 | 7 |
+| `tools/verify-books.js` | 各页面主题书单（13 个页面 + 首页无） | 54 |
 
 ```bash
 npm run test:all                # API + 前端回归

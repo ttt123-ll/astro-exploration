@@ -4,6 +4,7 @@ import gallery from '../data/gallery';
 import official from '../data/official';
 import VideoSection from '../components/VideoSection.vue';
 import PageNav from '../components/PageNav.vue';
+import BookSection from '../components/BookSection.vue';
 
 const officialItems = official.map(o => ({
     category: 'official',
@@ -122,6 +123,7 @@ onBeforeUnmount(() => {
         </div>
 
         <VideoSection topic="gallery" title="望远镜科普视频" />
+        <BookSection topic="gallery" />
     </div>
 
     <div class="lightbox" :class="{ active: lightbox }" @click.self="close">

@@ -4,6 +4,7 @@ import projection from '../data/projection';
 import VideoSection from '../components/VideoSection.vue';
 import SpaceFlight from './SpaceFlightView.vue';
 import PageNav from '../components/PageNav.vue';
+import BookSection from '../components/BookSection.vue';
 
 /* 两种模式：星球投影 / 3D 遨游太空 */
 const mode = ref('project');
@@ -102,6 +103,9 @@ function pick(i) {
             <!-- 该天体所属分类的科普视频 -->
             <VideoSection :topic="videoTopic" :title="activeCat + '科普视频'" />
         </div>
+
+        <!-- 主题书单（与是否选中天体无关，始终显示） -->
+        <BookSection topic="project" />
         </div>
 
         <!-- 3D 遨游太空（复用同一套 Three.js 场景） -->

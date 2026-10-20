@@ -2,6 +2,7 @@
 import videos from '../data/videos';
 import official from '../data/official';
 import gallery from '../data/gallery';
+import BookSection from '../components/BookSection.vue';
 
 // 图片出处统计
 const creditCount = {};
@@ -135,6 +136,7 @@ const verify = [
                 如权利人认为本站使用方式不妥，请联系我们，我们将立即处理。
             </p>
         </div>
+        <BookSection topic="credits" />
     </div>
 </template>
 

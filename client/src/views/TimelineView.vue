@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import timeline from '../data/timeline';
 import VideoSection from '../components/VideoSection.vue';
 import PageNav from '../components/PageNav.vue';
+import BookSection from '../components/BookSection.vue';
 
 const eras = [
     ['all', '全部事件', 'fa-infinity'],
@@ -74,5 +75,6 @@ function toggle(i) { expanded.value[i] = !expanded.value[i]; }
         </div>
 
         <VideoSection topic="timeline" title="宇宙与望远镜科普视频" />
+        <BookSection topic="timeline" />
     </div>
 </template>
