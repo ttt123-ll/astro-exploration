@@ -1,0 +1,234 @@
+<script setup>
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import constellations from '../data/constellations';
+import { facts } from '../data/site';
+import books from '../data/books';
+import VideoSection from '../components/VideoSection.vue';
+import PageNav from '../components/PageNav.vue';
+
+const season = ref('all');
+const seasons = ['all', '春季', '夏季', '秋季', '冬季'];
+const list = computed(() => season.value === 'all' ? constellations : constellations.filter(c => c.season === season.value));
+const img = c => '/assets/images/constellation_' + (c.latinName || '').toLowerCase() + '.jpg';
+
+/* —— 天文冷知识（原首页区块移入） —— */
+const factIdx = ref(0);
+let factAuto;
+function nextFact() { factIdx.value = (factIdx.value + 1) % facts.length; }
+onMounted(() => { factAuto = setInterval(nextFact, 4200); });
+onBeforeUnmount(() => clearInterval(factAuto));
+
+/* —— 知识挑战：三道热身题（原首页区块移入） —— */
+const teasers = [
+    { q: '太阳系中最大的行星是哪一颗？', o: ['地球', '木星', '土星', '海王星'], a: 1, e: '木星的直径约13.98万公里，是太阳系最大的行星，能装下1300多个地球。' },
+    { q: '阳光从太阳表面到达地球，大约需要多长时间？', o: ['约8分钟', '约8秒钟', '约8小时', '约8天'], a: 0, e: '日地距离约1.5亿公里，光速每秒约30万公里，因此阳光需要约8分20秒到达地球。' },
+    { q: '银河系的中心潜伏着什么？', o: ['一颗红巨星', '超大质量黑洞（人马座A*）', '一片明亮的星云', '一团暗物质'], a: 1, e: '银河系中心潜伏着名为"人马座A*"的超大质量黑洞，质量约为太阳的400万倍。' }
+];
+const chosen = ref([-1, -1, -1]);
+const checked = ref([false, false, false]);
+function check(i) {
+    if (chosen.value[i] < 0) return;
+    checked.value[i] = true;
+}
+
+/* —— 宇宙尺度之旅（原首页区块移入） —— */
+const stages = [
+    { name: '地球', size: '直径 12,742 公里', w: 56, cls: 'planet', desc: '我们唯一的家园——一颗蓝色的岩石行星。对人类而言它浩瀚无边，但在宇宙尺度下，它只是一粒微尘。' },
+    { name: '木星', size: '直径 139,820 公里', w: 74, cls: 'planet', desc: '太阳系最大的行星，体积能装下1300多个地球。它的大红斑风暴已咆哮了至少300年。' },
+    { name: '太阳', size: '直径 139 万公里', w: 118, cls: '', desc: '太阳系的心脏，质量占整个太阳系的99.86%。它的光芒要8分多钟才能抵达地球。' },
+    { name: '太阳系', size: '直径约 90 亿公里（海王星轨道内）', w: 140, cls: '', desc: '八大行星的家园。以光速横穿海王星轨道也要约8小时——而这只是宇宙中一个微不足道的角落。' },
+    { name: '比邻星', size: '距离 4.2 光年', w: 158, cls: '', desc: '离太阳最近的恒星。目前最快的人类探测器飞过去也需要7万年以上——星际旅行任重道远。' },
+    { name: '银河系', size: '直径约 10 万光年', w: 205, cls: 'galaxy', desc: '我们所在的星系，包含1000亿到4000亿颗恒星。太阳只是其中一颗普通的中年恒星。' },
+    { name: '本星系群', size: '直径约 1000 万光年', w: 248, cls: 'galaxy', desc: '包含银河系、仙女座星系在内的约80个星系组成的"宇宙社区"，它们相互吸引、缓慢聚拢。' },
+    { name: '可观测宇宙', size: '直径约 930 亿光年', w: 300, cls: 'universe', desc: '我们所能看到的宇宙边界，其中藏着约2万亿个星系。而可观测宇宙之外，还有更广阔的未知。' }
+];
+const scaleIdx = ref(0);
+
+/* —— 天文书籍横向轮播（箭头 / 拖拽 / 滚轮，原首页区块移入） —— */
+const booksRef = ref(null);
+function booksScroll(dir) {
+    const el = booksRef.value;
+    if (!el) return;
+    el.scrollBy({ left: dir * Math.max(250, el.clientWidth * 0.75), behavior: 'smooth' });
+}
+function onBooksWheel(e) {
+    const el = booksRef.value;
+    if (!el) return;
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    const atStart = el.scrollLeft <= 0 && e.deltaY < 0;
+    const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1 && e.deltaY > 0;
+    if (atStart || atEnd) return;
+    e.preventDefault();
+    el.scrollLeft += e.deltaY;
+}
+let bDrag = false, bStartX = 0, bStartLeft = 0;
+function booksDragStart(e) {
+    const el = booksRef.value;
+    if (!el) return;
+    bDrag = true; bStartX = e.pageX; bStartLeft = el.scrollLeft;
+    el.classList.add('dragging');
+}
+function booksDragMove(e) {
+    const el = booksRef.value;
+    if (!bDrag || !el) return;
+    el.scrollLeft = bStartLeft - (e.pageX - bStartX);
+}
+function booksDragEnd() {
+    const el = booksRef.value;
+    if (!el) return;
+    bDrag = false; el.classList.remove('dragging');
+}
+onMounted(() => {
+    const el = booksRef.value;
+    if (el) el.addEventListener('wheel', onBooksWheel, { passive: false });
+});
+onBeforeUnmount(() => {
+    const el = booksRef.value;
+    if (el) el.removeEventListener('wheel', onBooksWheel);
+});
+</script>
+
+<template>
+    <div class="container">
+        <PageNav title="四季星座" />
+        <div class="page-header">
+            <span class="page-kicker">CONSTELLATIONS</span>
+            <h1>四季星座</h1>
+            <p>春季看狮子座，夏季寻天蝎座，秋季望飞马座，冬季观猎户座——每一季都有属于自己的星座故事。</p>
+        </div>
+
+        <!-- 天文冷知识（原首页区块移入） -->
+        <section class="facts-widget">
+            <div class="section-head">
+                <h2 class="section-title"><span class="title-icon"><i class="fas fa-star"></i></span>天文冷知识</h2>
+                <p class="section-subtitle">你知道吗？宇宙里藏着许多让人惊呼的小秘密</p>
+            </div>
+            <div class="facts-card" v-reveal>
+                <div class="facts-icon"><i class="fas fa-lightbulb"></i></div>
+                <div class="facts-tag">✦ {{ facts[factIdx].c }}</div>
+                <p class="facts-text">{{ facts[factIdx].t }}</p>
+                <div class="facts-actions">
+                    <button class="btn btn-gold" @click="nextFact"><i class="fas fa-shuffle"></i> 换一条</button>
+                    <router-link to="/timeline" class="btn btn-ghost"><i class="fas fa-hourglass-half"></i> 看宇宙编年史</router-link>
+                </div>
+            </div>
+        </section>
+
+        <!-- 知识挑战：三道热身题（原首页区块移入） -->
+        <section class="quiz-teaser">
+            <div class="section-head">
+                <h2 class="section-title"><span class="title-icon"><i class="fas fa-trophy"></i></span>知识挑战</h2>
+                <p class="section-subtitle">先来三道热身题，看看你的天文段位</p>
+            </div>
+            <div class="teaser-card" v-reveal>
+                <template v-for="(t, i) in teasers" :key="i">
+                    <p class="teaser-question"><span class="q-num">Q{{ i + 1 }}</span>{{ t.q }}</p>
+                    <div class="teaser-options">
+                        <div v-for="(o, j) in t.o" :key="j" class="option"
+                             :class="{ correct: checked[i] && j === t.a, wrong: checked[i] && j === chosen[i] && j !== t.a }"
+                             :style="chosen[i] === j && !checked[i] ? 'border-color:var(--color-cyan);background:rgba(147,197,253,0.12)' : ''"
+                             @click="chosen[i] = j">
+                            <span class="letter">{{ 'ABCD'[j] }}</span>{{ o }}
+                        </div>
+                    </div>
+                    <div v-if="checked[i]" class="teaser-result show" :class="chosen[i] === t.a ? 'ok' : 'no'">
+                        <i class="fas" :class="chosen[i] === t.a ? 'fa-circle-check' : 'fa-circle-xmark'"></i>
+                        {{ chosen[i] === t.a ? '答对了！' : '答错了。' }}{{ t.e }}
+                    </div>
+                    <div style="text-align:right;margin-bottom:2rem;">
+                        <button class="btn btn-primary" style="padding:0.6rem 1.6rem;font-size:0.9rem;" @click="check(i)" :disabled="checked[i]">
+                            <i class="fas fa-check"></i> 检查答案
+                        </button>
+                    </div>
+                </template>
+                <div style="text-align:center;border-top:1px solid rgba(159,212,248,0.2);padding-top:1.6rem;">
+                    <router-link to="/community?tab=quiz" class="btn btn-gold"><i class="fas fa-trophy"></i> 进入完整测验（20题）</router-link>
+                </div>
+            </div>
+        </section>
+
+        <div class="filter-tabs">
+            <button v-for="s in seasons" :key="s" class="filter-tab" :class="{ active: season === s }" @click="season = s">
+                {{ s === 'all' ? '全部' : s + '星座' }}
+            </button>
+        </div>
+
+        <div class="cons-grid">
+            <router-link v-for="c in list" :key="c.name" :to="'/detail/constellation/' + c.latinName.toLowerCase()" class="cons-card" v-reveal>
+                <div class="cons-img"><img :src="img(c)" :alt="c.name"></div>
+                <div class="cons-body">
+                    <div class="cons-head"><h3>{{ c.name }}</h3><span class="latin">{{ c.latinName }}</span></div>
+                    <p>{{ c.legend.slice(0, 66) }}…</p>
+                    <div class="cons-meta">
+                        <span><i class="fas fa-calendar"></i> {{ c.bestView }}</span>
+                        <span><i class="fas fa-star"></i> {{ c.brightestStar }}</span>
+                    </div>
+                </div>
+            </router-link>
+        </div>
+
+        <!-- 宇宙尺度之旅（原首页区块移入） -->
+        <section class="scale-section">
+            <div class="section-head">
+                <h2 class="section-title"><span class="title-icon"><i class="fas fa-expand"></i></span>宇宙尺度之旅</h2>
+                <p class="section-subtitle">拖动滑块，从地球出发，感受宇宙到底有多大</p>
+            </div>
+            <div class="scale-card" v-reveal>
+                <div class="scale-stage">
+                    <div class="scale-object" :class="stages[scaleIdx].cls" :style="{ width: stages[scaleIdx].w + 'px', height: stages[scaleIdx].w + 'px' }"></div>
+                </div>
+                <div class="scale-info">
+                    <div class="scale-name">{{ stages[scaleIdx].name }}</div>
+                    <div class="scale-size">{{ stages[scaleIdx].size }}</div>
+                    <p class="scale-desc">{{ stages[scaleIdx].desc }}</p>
+                </div>
+                <div class="scale-controls">
+                    <button class="scale-btn" @click="scaleIdx = Math.max(0, scaleIdx - 1)"><i class="fas fa-minus"></i></button>
+                    <input type="range" class="scale-slider" min="0" max="7" step="1" v-model.number="scaleIdx">
+                    <button class="scale-btn" @click="scaleIdx = Math.min(7, scaleIdx + 1)"><i class="fas fa-plus"></i></button>
+                </div>
+                <div class="scale-labels">
+                    <span v-for="s in stages" :key="s.name">{{ s.name }}</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 天文书籍推荐（原首页区块移入） -->
+        <section class="books-strip">
+            <div class="section-head">
+                <h2 class="section-title"><span class="title-icon"><i class="fas fa-book-open"></i></span>天文书籍推荐</h2>
+                <p class="section-subtitle">从入门到进阶，这些经典科普书带你读懂宇宙（可点箭头、拖拽或滚轮左右滑动）</p>
+            </div>
+            <div class="books-wrap">
+                <button class="books-arrow prev" @click="booksScroll(-1)" aria-label="上一本"><i class="fas fa-chevron-left"></i></button>
+                <div class="books-track" ref="booksRef"
+                     @mousedown="booksDragStart" @mousemove="booksDragMove" @mouseup="booksDragEnd" @mouseleave="booksDragEnd">
+                    <div v-for="b in books" :key="b.title" class="book-card" v-reveal>
+                        <div class="book-cover" :style="{ background: 'linear-gradient(160deg,' + b.color + ',#101320)', color: '#fff' }">{{ b.icon }}</div>
+                        <h4>{{ b.title }}</h4>
+                        <div class="book-author">{{ b.author }}</div>
+                        <div class="book-en">{{ b.en }}</div>
+                        <p class="book-intro">{{ b.intro }}</p>
+                    </div>
+                </div>
+                <button class="books-arrow next" @click="booksScroll(1)" aria-label="下一本"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </section>
+
+        <VideoSection topic="constellation" title="星座与星空科普视频" />
+    </div>
+</template>
+
+<style scoped>
+.cons-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.6rem; }
+.cons-card { background: var(--bg-card); border-radius: var(--radius-md); overflow: hidden; border: 1px solid rgba(159,212,248,0.2); text-decoration: none; color: inherit; transition: all 0.35s ease; }
+.cons-card:hover { transform: translateY(-6px); border-color: var(--color-primary); box-shadow: var(--shadow-glow-primary); }
+.cons-img img { width: 100%; height: 170px; object-fit: cover; }
+.cons-body { padding: 1.2rem 1.3rem 1.4rem; }
+.cons-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.5rem; }
+.cons-head h3 { font-family: var(--font-title); color: var(--color-gold); font-size: 1.15rem; }
+.cons-head .latin { color: var(--color-text-muted); font-size: 0.85rem; font-style: italic; }
+.cons-body p { color: var(--color-text-secondary); font-size: 0.85rem; line-height: 1.7; margin-bottom: 0.9rem; }
+.cons-meta { display: flex; gap: 1.2rem; color: var(--color-text-muted); font-size: 0.8rem; flex-wrap: wrap; }
+.cons-meta i { color: var(--color-cyan); margin-right: 0.3rem; }
+</style>
