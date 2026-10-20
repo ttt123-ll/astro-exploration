@@ -148,7 +148,7 @@ onBeforeUnmount(stopAuto);
 <template>
     <div class="container">
         <PageNav title="宇宙新闻" />
-        <PageHeader kicker="COSMIC NEWS" title="宇宙新闻" icon="fa-newspaper" :stats="[{ v: String(total || 24), l: '新闻记录' }, { v: '30 秒', l: '自动同步' }]" subtitle="新闻以数据库记录实时更新——按关键词搜索、按时间与主题筛选，追踪人类探索宇宙的最新足迹。" />
+        <PageHeader kicker="COSMIC NEWS" title="宇宙新闻" icon="fa-newspaper" deco="nebula" :stats="[{ v: String(total || 24), l: '新闻记录' }, { v: '30 秒', l: '自动同步' }]" subtitle="新闻以数据库记录实时更新——按关键词搜索、按时间与主题筛选，追踪人类探索宇宙的最新足迹。" />
 
         <!-- 实时状态条 -->
         <div class="live-bar" :class="{ fresh }">

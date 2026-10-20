@@ -407,6 +407,11 @@ chore: 构建/工具  perf: 性能优化
 | `tools/verify-scrollback.js` | 返回首页滚动位置恢复 | 7 |
 | `tools/verify-books.js` | 各页面主题书单（13 个页面 + 首页无） | 54 |
 | `tools/verify-header.js` | 增强版页头（标题/kicker/数据卡，11 个页面） | 71 |
+| `tools/verify-icons.js` | Font Awesome 图标可用性审计 | 115 |
+| `tools/verify-a11y.js` | 键盘焦点、减少动态、导航激活态、页脚彩蛋 | 15 |
+| `tools/verify-home.js` | 首页轮播进度条、指示点、数据条、向下探索 | 15 |
+| `tools/verify-pages.js` | 百科分类卡、时间线标尺与色带、书封、页头装饰 | 17 |
+| `tools/verify-404-auth.js` | 404 星际漂流页、登录注册星云与玻璃卡片 | 13 |
 
 ```bash
 npm run test:all                # API + 前端回归

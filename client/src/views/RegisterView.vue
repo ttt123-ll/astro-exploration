@@ -68,6 +68,12 @@ async function submit() {
 
 <template>
     <div class="container auth-wrap">
+        <!-- 星云背景 -->
+        <div class="auth-nebula" aria-hidden="true">
+            <span class="an-blob b1"></span>
+            <span class="an-blob b2"></span>
+            <span class="an-blob b3"></span>
+        </div>
         <div class="auth-card">
             <div class="auth-left">
                 <div class="auth-planet"><span class="auth-ring"></span></div>

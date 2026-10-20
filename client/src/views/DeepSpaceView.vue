@@ -9,7 +9,7 @@ const telescopes = Object.entries(content.telescope).map(([k, v]) => ({ key: k, 
 
 <template>
     <div class="container">
-        <PageHeader kicker="DEEP SPACE" title="深空天体" icon="fa-meteor" :stats="[{ v: '梅西耶', l: '星表' }, { v: '24h', l: '深空影像' }]" subtitle="星云、星系、星团等深空天体图鉴——梅西耶天体与著名深空影像。" />
+        <PageHeader kicker="DEEP SPACE" title="深空天体" icon="fa-meteor" deco="nebula" :stats="[{ v: '梅西耶', l: '星表' }, { v: '24h', l: '深空影像' }]" subtitle="星云、星系、星团等深空天体图鉴——梅西耶天体与著名深空影像。" />
 
         <div class="section-head"><h2 class="section-title">深空天体图鉴</h2></div>
         <div class="obj-grid">

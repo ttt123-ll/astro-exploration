@@ -35,7 +35,7 @@ const scaleIdx = ref(0);
 
 <template>
     <div class="container">
-        <PageHeader kicker="CONSTELLATIONS" title="四季星座" icon="fa-star" :stats="[{ v: String(constellations.length), l: '代表星座' }, { v: '4', l: '观测季节' }]" subtitle="春季看狮子座，夏季寻天蝎座，秋季望飞马座，冬季观猎户座——每一季都有属于自己的星座故事。" />
+        <PageHeader kicker="CONSTELLATIONS" title="四季星座" icon="fa-star" deco="stars" :stats="[{ v: String(constellations.length), l: '代表星座' }, { v: '4', l: '观测季节' }]" subtitle="春季看狮子座，夏季寻天蝎座，秋季望飞马座，冬季观猎户座——每一季都有属于自己的星座故事。" />
 
         <!-- 天文冷知识（原首页区块移入） -->
         <section class="facts-widget">

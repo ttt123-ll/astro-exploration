@@ -7,7 +7,7 @@ const ui = useUi();
 
 <template>
     <div class="container" style="max-width:760px;">
-        <PageHeader kicker="DEPLOYMENT" title="系统部署说明" icon="fa-download" :stats="[{ v: '2', l: '部署方式' }, { v: '1 键', l: '一键启动' }]" subtitle="本系统采用 Vue 3 前端 + Node.js Express 后端 + MySQL 数据库，一键启动即可运行。" />
+        <PageHeader kicker="DEPLOYMENT" title="系统部署说明" icon="fa-download" deco="grid" :stats="[{ v: '2', l: '部署方式' }, { v: '1 键', l: '一键启动' }]" subtitle="本系统采用 Vue 3 前端 + Node.js Express 后端 + MySQL 数据库，一键启动即可运行。" />
 
         <div class="scale-card" style="text-align:center;">
             <div class="facts-icon" style="margin-bottom:1.4rem;"><i class="fas fa-rocket"></i></div>

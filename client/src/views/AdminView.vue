@@ -103,7 +103,7 @@ onMounted(load);
 
 <template>
     <div class="container">
-        <PageHeader kicker="CONTROL CENTER" title="后台管理面板" icon="fa-gauge-high" :stats="[{ v: '5', l: '管理模块' }, { v: '实时', l: '数据监控' }]">
+        <PageHeader kicker="CONTROL CENTER" title="后台管理面板" icon="fa-gauge-high" deco="grid" :stats="[{ v: '5', l: '管理模块' }, { v: '实时', l: '数据监控' }]">
             欢迎回来，指挥官 <b style="color:var(--color-cyan);">{{ auth.user?.username }}</b>。这里监控着整个空间站的运行状况。
         </PageHeader>
 

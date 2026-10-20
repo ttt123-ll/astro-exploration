@@ -48,7 +48,7 @@ function groupLabel(g) {
     return { planet: '行星', star: '恒星', constellation: '星座', galaxy: '星系', blackhole: '黑洞', object: '深空', telescope: '望远镜' }[g] || '内容';
 }
 function groupIcon(g) {
-    return { planet: 'fa-circle', star: 'fa-star', constellation: 'fa-star', galaxy: 'fa-sparkles', blackhole: 'fa-circle-dot', object: 'fa-image', telescope: 'fa-satellite' }[g] || 'fa-circle';
+    return { planet: 'fa-circle', star: 'fa-star', constellation: 'fa-star', galaxy: 'fa-wand-magic-sparkles', blackhole: 'fa-circle-dot', object: 'fa-image', telescope: 'fa-satellite' }[g] || 'fa-circle';
 }
 
 function open() {

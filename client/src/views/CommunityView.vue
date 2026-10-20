@@ -29,7 +29,7 @@ function setTopTab(k) {
 
 /* ============ 知识竞赛 ============ */
 const CAT_NAMES = { all: '全部主题', solar: '太阳系', star: '恒星与星系', bh: '黑洞', cosmos: '宇宙探索' };
-const CAT_ICONS = { all: 'fa-globe', solar: 'fa-sun', star: 'fa-sparkles', bh: 'fa-circle-dot', cosmos: 'fa-atom' };
+const CAT_ICONS = { all: 'fa-globe', solar: 'fa-sun', star: 'fa-wand-magic-sparkles', bh: 'fa-circle-dot', cosmos: 'fa-atom' };
 
 const stage = ref('start');
 const cat = ref('all');
@@ -211,7 +211,7 @@ onBeforeUnmount(() => {
 <template>
     <div class="container">
         <PageNav title="互动社区" />
-        <PageHeader kicker="INTERACTIVE COMMUNITY" title="互动社区" icon="fa-users" :stats="[{ v: String(quiz.length), l: '竞赛题目' }, { v: '15 秒', l: '排行榜刷新' }]" subtitle="参加天文知识竞赛检验你的宇宙认知，在留言板留下观星足迹，成绩与留言都会实时汇总到下方的星际排行榜。" />
+        <PageHeader kicker="INTERACTIVE COMMUNITY" title="互动社区" icon="fa-users" deco="stars" :stats="[{ v: String(quiz.length), l: '竞赛题目' }, { v: '15 秒', l: '排行榜刷新' }]" subtitle="参加天文知识竞赛检验你的宇宙认知，在留言板留下观星足迹，成绩与留言都会实时汇总到下方的星际排行榜。" />
 
         <!-- 上方：知识竞赛 / 留言板 -->
         <div class="comm-tabs">

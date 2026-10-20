@@ -11,8 +11,14 @@ const router = useRouter();
 
 /* 天文百科 = 恒星与星系 + 黑洞科普 */
 const TABS = [
-    { key: 'stars', label: '恒星与星系', icon: 'fa-sparkles', desc: '恒星的一生与宇宙中的岛宇宙' },
-    { key: 'bh', label: '黑洞', icon: 'fa-circle-dot', desc: '连光都无法逃脱的天体' }
+    {
+        key: 'stars', label: '恒星与星系', icon: 'fa-wand-magic-sparkles', desc: '恒星的一生与宇宙中的岛宇宙',
+        color: '#9d8cf0', grad: 'linear-gradient(135deg, rgba(157,140,240,0.22), rgba(110,164,232,0.16))'
+    },
+    {
+        key: 'bh', label: '黑洞', icon: 'fa-circle-dot', desc: '连光都无法逃脱的天体',
+        color: '#e8846e', grad: 'linear-gradient(135deg, rgba(232,132,110,0.22), rgba(157,140,240,0.14))'
+    }
 ];
 
 const validTab = k => TABS.some(t => t.key === k);
@@ -40,12 +46,13 @@ const BH_STATS = [
 
 <template>
     <div class="container">
-        <PageHeader kicker="ASTRONOMY ENCYCLOPEDIA" title="天文百科" icon="fa-book-open" :stats="[{ v: '6', l: '恒星演化阶段' }, { v: '4', l: '星系类型' }, { v: '4', l: '黑洞类型' }]" subtitle="从恒星的诞生与死亡，到星系的宏大聚落，再到连光都无法逃脱的黑洞——这里收录了宇宙中最主要的天体类型与演化历程。" />
+        <PageHeader kicker="ASTRONOMY ENCYCLOPEDIA" title="天文百科" icon="fa-book-open" deco="galaxy" :stats="[{ v: '6', l: '恒星演化阶段' }, { v: '4', l: '星系类型' }, { v: '4', l: '黑洞类型' }]" subtitle="从恒星的诞生与死亡，到星系的宏大聚落，再到连光都无法逃脱的黑洞——这里收录了宇宙中最主要的天体类型与演化历程。" />
 
         <!-- 分类切换 -->
         <div class="enc-tabs">
-            <button v-for="t in TABS" :key="t.key" class="enc-tab" :class="{ active: tab === t.key }" @click="setTab(t.key)">
-                <i class="fas" :class="t.icon"></i>
+            <button v-for="t in TABS" :key="t.key" class="enc-tab" :class="{ active: tab === t.key }"
+                    :style="{ '--tab-color': t.color, '--tab-grad': t.grad }" @click="setTab(t.key)">
+                <span class="enc-tab-icon"><i class="fas" :class="t.icon"></i></span>
                 <span class="enc-tab-main">{{ t.label }}</span>
                 <span class="enc-tab-sub">{{ t.desc }}</span>
             </button>
@@ -66,7 +73,7 @@ const BH_STATS = [
             </div>
 
             <div class="section-head" style="margin-top:3rem;">
-                <h2 class="section-title"><span class="title-icon"><i class="fas fa-galaxy"></i></span>星系类型</h2>
+                <h2 class="section-title"><span class="title-icon"><i class="fas fa-hurricane"></i></span>星系类型</h2>
                 <p class="section-subtitle">旋涡、椭圆、棒旋与不规则——宇宙中的「岛宇宙」</p>
             </div>
             <div class="type-grid">
@@ -116,18 +123,37 @@ const BH_STATS = [
 .enc-tab {
     display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem;
     padding: 1.1rem 1.4rem; border-radius: var(--radius-md); cursor: pointer;
-    background: var(--bg-card); border: 1px solid rgba(159, 212, 248, 0.2);
+    background: var(--tab-grad, rgba(159, 212, 248, 0.06));
+    border: 1px solid color-mix(in srgb, var(--tab-color, #9d8cf0) 30%, transparent);
     color: var(--color-text-secondary); text-align: left; transition: all 0.35s ease;
-    font-family: inherit;
+    font-family: inherit; position: relative; overflow: hidden;
 }
-.enc-tab i { color: var(--color-cyan); font-size: 1.1rem; margin-bottom: 0.3rem; }
+.enc-tab::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--tab-color, #9d8cf0) 26%, transparent), transparent 58%);
+    opacity: 0.7; transition: opacity 0.35s ease; pointer-events: none;
+}
+.enc-tab-icon {
+    width: 34px; height: 34px; border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: color-mix(in srgb, var(--tab-color, #9d8cf0) 20%, transparent);
+    border: 1px solid color-mix(in srgb, var(--tab-color, #9d8cf0) 42%, transparent);
+    color: var(--tab-color, var(--color-cyan));
+    font-size: 1rem; margin-bottom: 0.45rem;
+    transition: all 0.35s ease;
+}
 .enc-tab-main { font-family: var(--font-title); font-size: 1.05rem; color: #e8eefc; }
 .enc-tab-sub { font-size: 0.8rem; }
-.enc-tab:hover { border-color: var(--color-primary); transform: translateY(-3px); }
+.enc-tab:hover { border-color: var(--tab-color, var(--color-primary)); transform: translateY(-3px); }
+.enc-tab:hover::before { opacity: 1; }
+.enc-tab:hover .enc-tab-icon { transform: scale(1.08) rotate(-6deg); }
 .enc-tab.active {
-    background: var(--gradient-primary); border-color: transparent;
-    box-shadow: var(--shadow-glow-primary);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--tab-color, #9d8cf0) 55%, transparent), rgba(14, 18, 34, 0.9));
+    border-color: color-mix(in srgb, var(--tab-color, #9d8cf0) 70%, transparent);
+    box-shadow: 0 12px 34px color-mix(in srgb, var(--tab-color, #9d8cf0) 34%, transparent);
 }
+.enc-tab.active .enc-tab-icon { background: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.4); color: #fff; }
 .enc-tab.active i, .enc-tab.active .enc-tab-main { color: #fff; }
 .enc-tab.active .enc-tab-sub { color: rgba(255, 255, 255, 0.82); }
 

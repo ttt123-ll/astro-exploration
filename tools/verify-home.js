@@ -68,11 +68,6 @@ const check = (n, c, e) => {
     check('每张卡片都有图标', stats.every(s => s.icon && s.icon.includes('fa-')), stats);
 
     // hover 数字发光
-    const box = await p.evaluate(() => {
-        const el = document.querySelector('.hero-stat');
-        const r = el.getBoundingClientRect();
-        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-    });
     await p.evaluate(() => document.querySelector('.stats-strip')?.scrollIntoView({ block: 'center' }));
     await sleep(600);
     const box2 = await p.evaluate(() => {

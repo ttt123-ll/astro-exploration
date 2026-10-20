@@ -94,7 +94,14 @@ onBeforeUnmount(() => {
             <div class="books-track" ref="trackRef"
                  @mousedown="dragStart" @mousemove="dragMove" @mouseup="dragEnd" @mouseleave="dragEnd">
                 <div v-for="b in list" :key="b.id" class="book-card">
-                    <div class="book-cover" :style="{ background: 'linear-gradient(160deg,' + b.color + ',#101320)', color: '#fff' }">{{ b.icon }}</div>
+                    <!-- 排版式书封：竖排书名 + 作者 + 装饰线，更接近真实书籍 -->
+                    <div class="book-cover" :style="{ '--bc-color': b.color }">
+                        <span class="bc-topline"></span>
+                        <span class="bc-title">{{ b.title }}</span>
+                        <span class="bc-author">{{ b.author }}</span>
+                        <span class="bc-mark">{{ b.icon }}</span>
+                        <span class="bc-botline"></span>
+                    </div>
                     <h4>{{ b.title }}</h4>
                     <div class="book-author">{{ b.author }}</div>
                     <div class="book-en">{{ b.en }}</div>
@@ -109,4 +116,79 @@ onBeforeUnmount(() => {
 <style scoped>
 /* 只补充布局间距，卡片样式复用全局 .books-strip / .book-card */
 .book-section { margin-top: 3.2rem; }
+
+/* —— 排版式书封 —— */
+.book-cover {
+    height: 132px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.7rem 0.4rem;
+    background:
+        linear-gradient(150deg, color-mix(in srgb, var(--bc-color, #8b7ec8) 68%, #0a0d18), #0b0f1c 92%);
+    border: 1px solid color-mix(in srgb, var(--bc-color, #8b7ec8) 45%, transparent);
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+}
+
+/* 书脊阴影 */
+.book-cover::after {
+    left: 8px;
+    width: 4px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.05));
+    box-shadow: 1px 0 8px rgba(0, 0, 0, 0.55);
+}
+
+.bc-title {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-family: var(--font-title);
+    font-size: 0.92rem;
+    letter-spacing: 0.16em;
+    color: #f5f7ff;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.75);
+    max-height: 92px;
+    overflow: hidden;
+}
+
+.bc-author {
+    writing-mode: vertical-rl;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    color: rgba(240, 244, 255, 0.72);
+    max-height: 66px;
+    overflow: hidden;
+}
+
+.bc-topline,
+.bc-botline {
+    position: absolute;
+    left: 22%;
+    right: 12%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+}
+
+.bc-topline { top: 9px; }
+.bc-botline { bottom: 9px; }
+
+.bc-mark {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    font-size: 1rem;
+    opacity: 0.42;
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
+}
+
+.book-card:hover .book-cover {
+    border-color: color-mix(in srgb, var(--bc-color, #8b7ec8) 80%, transparent);
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.35), 0 12px 26px color-mix(in srgb, var(--bc-color, #8b7ec8) 34%, transparent);
+}
+
+.book-card:hover .book-cover::after {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.1));
+}
 </style>

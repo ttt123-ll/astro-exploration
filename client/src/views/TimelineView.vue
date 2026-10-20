@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import timeline from '../data/timeline';
 import VideoSection from '../components/VideoSection.vue';
 import PageNav from '../components/PageNav.vue';
@@ -9,7 +9,7 @@ import PageHeader from '../components/PageHeader.vue';
 const eras = [
     ['all', '全部事件', 'fa-infinity'],
     ['origin', '宇宙起源', 'fa-bolt'],
-    ['galaxy', '星系与恒星', 'fa-sparkles'],
+    ['galaxy', '星系与恒星', 'fa-wand-magic-sparkles'],
     ['solar', '太阳系与地球', 'fa-sun'],
     ['life', '生命演化', 'fa-dna'],
     ['future', '未来远景', 'fa-hourglass-end']
@@ -20,12 +20,33 @@ const list = computed(() => era.value === 'all' ? timeline : timeline.filter(e =
 const tlPre = computed(() => timeline.slice(0, 8));
 const expanded = ref({});
 function toggle(i) { expanded.value[i] = !expanded.value[i]; }
+
+/* —— 年代进度标尺：随滚动位置移动 —— */
+const rulerPct = ref(0);
+function updateRuler() {
+    const el = document.getElementById('tl-full');
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const passed = vh * 0.55 - rect.top;          // 列表顶部进入视口 55% 处开始计数
+    const total = rect.height + vh * 0.55;
+    rulerPct.value = Math.min(100, Math.max(0, (passed / Math.max(total, 1)) * 100));
+}
+onMounted(() => {
+    window.addEventListener('scroll', updateRuler, { passive: true });
+    window.addEventListener('resize', updateRuler);
+    updateRuler();
+});
+onBeforeUnmount(() => {
+    window.removeEventListener('scroll', updateRuler);
+    window.removeEventListener('resize', updateRuler);
+});
 </script>
 
 <template>
     <div class="container">
         <PageNav title="宇宙时间线" />
-        <PageHeader kicker="COSMIC CHRONICLE" title="宇宙时间线" icon="fa-hourglass-half" :stats="[{ v: String(timeline.length), l: '关键节点' }, { v: '138 亿年', l: '时间跨度' }]" subtitle="从138亿年前的大爆炸，到遥远未来的热寂——点击事件可展开更多细节。" />
+        <PageHeader kicker="COSMIC CHRONICLE" title="宇宙时间线" icon="fa-hourglass-half" deco="orbit" :stats="[{ v: String(timeline.length), l: '关键节点' }, { v: '138 亿年', l: '时间跨度' }]" subtitle="从138亿年前的大爆炸，到遥远未来的热寂——点击事件可展开更多细节。" />
 
         <!-- 宇宙编年史：八个关键瞬间（横向滑动） -->
         <section class="timeline-strip">
@@ -55,8 +76,25 @@ function toggle(i) { expanded.value[i] = !expanded.value[i]; }
             </button>
         </div>
 
+        <!-- 年代进度标尺：随滚动前进 -->
+        <div class="tl-ruler" v-show="list.length > 1">
+            <div class="tl-ruler-track">
+                <span class="tl-ruler-fill" :style="{ width: rulerPct + '%' }"></span>
+                <span class="tl-ruler-head" :style="{ left: rulerPct + '%' }"></span>
+            </div>
+            <div class="tl-ruler-labels">
+                <span>大爆炸</span>
+                <span>第一批恒星</span>
+                <span>太阳系诞生</span>
+                <span>生命出现</span>
+                <span>今天</span>
+                <span>未来</span>
+            </div>
+        </div>
+
         <div class="universe-timeline" id="tl-full">
-            <div v-for="(e, i) in list" :key="i" class="u-event" :class="{ future: e.future, expanded: expanded[i] }" v-reveal>
+            <div v-for="(e, i) in list" :key="i" class="u-event"
+                 :class="['era-' + e.era, { future: e.future, expanded: expanded[i] }]" v-reveal>
                 <div class="u-dot"></div>
                 <div class="u-event-card">
                     <div class="u-head">

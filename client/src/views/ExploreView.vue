@@ -19,7 +19,7 @@ const lightTime = computed(() => (dist.value / 299792.458).toFixed(1) + ' 秒');
 
 <template>
     <div class="container">
-        <PageHeader kicker="ASTRO TOOLS" title="探索工具" icon="fa-calculator" :stats="[{ v: '3', l: '换算工具' }]" subtitle="把天文数字变成可以动手玩的小工具——换算宇宙的尺度与时间。" />
+        <PageHeader kicker="ASTRO TOOLS" title="探索工具" icon="fa-calculator" deco="grid" :stats="[{ v: '3', l: '换算工具' }]" subtitle="把天文数字变成可以动手玩的小工具——换算宇宙的尺度与时间。" />
 
         <div class="tool-grid">
             <div class="tool-card" v-reveal>
