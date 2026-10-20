@@ -90,9 +90,13 @@ async function load() {
 }
 async function del(path, id) {
     if (!confirm('确定删除吗？')) return;
-    await api.delete(path + id);
-    ui.toastMsg('已删除');
-    load();
+    try {
+        await api.delete(path + id);
+        ui.toastMsg('已删除');
+        load();
+    } catch (e) {
+        ui.toastMsg(e.response?.data?.error || '删除失败', 'error');
+    }
 }
 onMounted(load);
 </script>
@@ -201,12 +205,16 @@ onMounted(load);
             <div class="sys-card">
                 <h3 class="admin-h"><i class="fas fa-users"></i> 用户列表</h3>
                 <table class="sys-table">
-                    <thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>注册时间</th></tr></thead>
+                    <thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>注册时间</th><th></th></tr></thead>
                     <tbody>
                         <tr v-for="u in users" :key="u.id">
                             <td>{{ u.id }}</td><td><i class="fas fa-user-astronaut"></i> {{ u.username }}</td>
                             <td><span :class="u.role === 'admin' ? 'badge-admin' : 'badge-user'">{{ u.role === 'admin' ? '管理员' : '用户' }}</span></td>
                             <td class="cell-time">{{ fmtDateTime(u.created_at) }}</td>
+                            <td>
+                                <button v-if="u.role !== 'admin'" class="sys-del-btn" title="删除用户（连带其成绩与留言）"
+                                        @click="del('/admin/users/', u.id)"><i class="fas fa-trash-can"></i></button>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
