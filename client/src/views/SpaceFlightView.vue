@@ -20,6 +20,7 @@ const BODIES = [
 
 const cv = ref(null);
 const loading = ref(true);
+const renderError = ref('');
 const warping = ref(false);
 
 /* 被「星球投影」页内嵌时，给顶部模式切换让出空间 */
@@ -411,16 +412,46 @@ function init() {
     const canvas = cv.value;
     W = canvas.clientWidth; H = canvas.clientHeight;
 
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true });
+    // 深度缓冲兼容性：logarithmicDepthBuffer 在部分显卡/驱动上会导致所有实体消失
+    // （只剩关闭了深度写入的线条），这里检测能力并自动降级
+    // 手动兜底：地址后加 ?nolog=1 可强制关闭（用于个别驱动异常的机器）
+    const forceNoLog = typeof location !== 'undefined' && /[?&]nolog=1/.test(location.search);
+    let useLogDepth = !forceNoLog;
+    try {
+        renderer = new THREE.WebGLRenderer({
+            canvas, antialias: true, logarithmicDepthBuffer: true,
+            preserveDrawingBuffer: true, powerPreference: 'high-performance'
+        });
+        if (renderer.capabilities && renderer.capabilities.logarithmicDepthBuffer === false) useLogDepth = false;
+    } catch (e) {
+        renderer = null;
+    }
+    if (!renderer) useLogDepth = false;
+    if (!useLogDepth) {
+        renderer = new THREE.WebGLRenderer({
+            canvas, antialias: true, logarithmicDepthBuffer: false,
+            preserveDrawingBuffer: true, powerPreference: 'high-performance'
+        });
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.setSize(W, H, false);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
 
+    // 上下文丢失（显卡休眠/内存不足）时给出提示而不是纯黑屏
+    const markLost = (ev) => {
+        if (ev) ev.preventDefault();
+        loading.value = true;
+        renderError.value = '3D 渲染上下文已丢失（可能是显卡驱动或显存问题），请刷新页面重试。';
+        if (renderer) renderer.domElement.style.opacity = '0.25';
+    };
+    canvas.addEventListener('webglcontextlost', markLost, false);
+
     scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x05070f, 0.000012);
 
-    camera = new THREE.PerspectiveCamera(62, W / H, 1, 3000000);
+    // 近远平面：远平面无需开到 300 万，过大的比值会让深度精度崩掉
+    camera = new THREE.PerspectiveCamera(62, W / H, useLogDepth ? 2 : 4, useLogDepth ? 400000 : 120000);
     camera.rotation.order = 'YXZ';
 
     computePositions();
@@ -439,7 +470,7 @@ function init() {
     scene.add(sunLight);
     scene.add(new THREE.AmbientLight(0x33466e, 1.1));
 
-    setTimeout(() => { loading.value = false; }, 800);
+    setTimeout(() => { loading.value = false; }, 800);;
 }
 
 /* ===================== 主循环 ===================== */
@@ -792,7 +823,7 @@ onBeforeUnmount(() => {
 
         <div v-if="loading" class="flight-loading">
             <div class="loading-orb"></div>
-            <p>正在生成 3D 宇宙…</p>
+            <p>{{ renderError || '正在生成 3D 宇宙…' }}</p>
         </div>
 
         <div class="warp-overlay" :class="{ on: warping }"></div>
