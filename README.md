@@ -64,11 +64,13 @@
 - **四季星座**：13 个代表星座的亮星、观测季节与神话传说，附天文冷知识与宇宙尺度互动
 - **星空图集**：41+ 张哈勃 / 韦伯等官方影像，支持分类筛选、灯箱放大、图片来源标注
 - **宇宙时间线**：从大爆炸到热寂的 21 个关键节点，支持按时代筛选与展开详情
+- **近地天体观察站**：对接 NASA NeoWs，实时倒计时 + 尺寸/速度/最近距离，离线时自动回退内置数据
 - **宇宙新闻**：数据库驱动的实时新闻流，支持关键词搜索（含搜索记录）、主题 / 时间 / 排序筛选
 
 ### 3D 互动
 
 - **星球投影**：38 个天体，点击生成 3D 全息投影 + 详细图文
+- **3D 遨游增强**：小行星带（InstancedMesh 1600 颗）、行星标签、点击天体相机飞掠 + 信息面板
 - **遨游太空**：真实公转周期（水星 88 天 → 海王星 165 年）、时间流速与距离比例滑块
 - **首页入口**：可点击地球穿越进投影页、迷你太阳系点击行星直达详情
 
@@ -386,6 +388,7 @@ chore: 构建/工具  perf: 性能优化
 | GET | `/api/messages` | 公开 | 留言列表 |
 | POST | `/api/messages` | 登录 | 发布留言 |
 | GET | `/api/news?tag=&q=&days=&sort=` | 公开 | 新闻（支持搜索 / 筛选） |
+| GET | `/api/neo` | 公开 | 近地天体（NASA NeoWs 实时，失败回退内置数据，6 小时缓存） |
 | GET | `/api/chat/mode` · POST `/api/chat` | 公开 | 问答模式 / 提问 |
 | POST | `/api/visit` | 公开 | 访问统计 |
 | GET | `/api/admin/overview` · `/admin/users` 等 | 管理员 | 后台数据 |
@@ -407,11 +410,13 @@ chore: 构建/工具  perf: 性能优化
 | `tools/verify-scrollback.js` | 返回首页滚动位置恢复 | 7 |
 | `tools/verify-books.js` | 各页面主题书单（13 个页面 + 首页无） | 54 |
 | `tools/verify-header.js` | 增强版页头（标题/kicker/数据卡，11 个页面） | 71 |
+| `tools/verify-wins.js` | 聚光灯边框、骨架屏、段位徽章、星座连线 | 21 |
 | `tools/verify-icons.js` | Font Awesome 图标可用性审计 | 115 |
 | `tools/verify-a11y.js` | 键盘焦点、减少动态、导航激活态、页脚彩蛋 | 15 |
 | `tools/verify-home.js` | 首页轮播进度条、指示点、数据条、向下探索 | 15 |
 | `tools/verify-pages.js` | 百科分类卡、时间线标尺与色带、书封、页头装饰 | 17 |
 | `tools/verify-404-auth.js` | 404 星际漂流页、登录注册星云与玻璃卡片 | 13 |
+| `tools/verify-3d-neo.js` | 小行星带、行星标签、点击飞掠面板、NEO 页与接口 | 25 |
 
 ```bash
 npm run test:all                # API + 前端回归

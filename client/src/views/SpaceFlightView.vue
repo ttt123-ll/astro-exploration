@@ -44,6 +44,19 @@ const nearest = reactive({ name: '地球', dist: 0, gravity: '9.81 m/s²', desc:
 const speedText = ref('0.0 km/s');
 const clock = ref('');
 
+/* 行星标签（屏幕投影）与被选中的天体信息面板 */
+const labels = ref([]);
+const selected = ref(null);
+let labelAcc = 0;
+const projVec = new THREE.Vector3();
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+
+/* 小行星带 */
+let belt = null;
+let beltData = [];
+const BELT_RANGE = [2.15, 3.30];   // AU：火星(1.52)与木星(5.20)之间
+
 let renderer, scene, camera, raf;
 let W = 0, H = 0;
 let planets = [];
@@ -283,9 +296,55 @@ function addPlanets() {
             }
         }
         scene.add(mesh);
+        mesh.userData.key = b.key;
+        mesh.userData.name = b.name;
         planets.push({ mesh, data: b, spin: 0.02 + Math.random() * 0.06 });
         b.mesh = mesh;
     }
+}
+
+/* ===================== 小行星带（InstancedMesh，一次绘制上千颗） ===================== */
+function buildBeltMatrices() {
+    if (!belt) return;
+    const dummy = new THREE.Object3D();
+    for (let i = 0; i < beltData.length; i++) {
+        const d = beltData[i];
+        const r = orbitalDist(d.a);
+        const yy = Math.sin(d.tilt) * r * 0.035;
+        dummy.position.set(Math.cos(d.ang) * r, yy, Math.sin(d.ang) * r);
+        dummy.rotation.set(d.rx, d.ry, d.rz);
+        dummy.scale.set(d.s, d.s * d.sy, d.s);
+        dummy.updateMatrix();
+        belt.setMatrixAt(i, dummy.matrix);
+    }
+    belt.instanceMatrix.needsUpdate = true;
+}
+
+function addAsteroidBelt() {
+    const COUNT = 1600;
+    // 低多边形碎石：二十面体 + 平面着色，接近真实小行星的粗糙感
+    const geo = new THREE.IcosahedronGeometry(4.2, 0);
+    const mat = new THREE.MeshStandardMaterial({
+        color: 0x9a9488, roughness: 1, metalness: 0.02, flatShading: true
+    });
+    belt = new THREE.InstancedMesh(geo, mat, COUNT);
+    belt.frustumCulled = false;
+
+    beltData = [];
+    for (let i = 0; i < COUNT; i++) {
+        beltData.push({
+            a: BELT_RANGE[0] + Math.random() * (BELT_RANGE[1] - BELT_RANGE[0]),
+            ang: Math.random() * Math.PI * 2,
+            tilt: Math.random() * Math.PI * 2,
+            rx: Math.random() * 6.28,
+            ry: Math.random() * 6.28,
+            rz: Math.random() * 6.28,
+            s: 0.45 + Math.random() * 1.9,
+            sy: 0.55 + Math.random() * 0.9
+        });
+    }
+    buildBeltMatrices();
+    scene.add(belt);
 }
 
 /* 相机 → 最近天体引导线 */
@@ -371,6 +430,7 @@ function init() {
     addNebula();
     addLines();
     addPlanets();
+    addAsteroidBelt();
     addTether();
     addWarp();
 
@@ -511,6 +571,28 @@ function animate(t) {
         simLabel.value = (simDays / 365.25).toFixed(1) + ' 年';
     }
 
+    // 小行星带缓慢整体旋转
+    if (belt) belt.rotation.y += dt * 0.012;
+
+    // ===== 行星标签：世界坐标 → 屏幕坐标 =====
+    labelAcc += dt;
+    if (labelAcc > 0.1) {
+        labelAcc = 0;
+        const out = [];
+        for (const b of BODIES) {
+            if (b.key === 'sun' || b.key === 'moon') continue;
+            const p = posMap[b.key];
+            projVec.copy(p).project(camera);
+            const x = (projVec.x * 0.5 + 0.5) * W;
+            const y = (-projVec.y * 0.5 + 0.5) * H;
+            const d = camPos.distanceTo(p);
+            if (projVec.z > 1 || x < -60 || x > W + 60 || y < -30 || y > H + 30) continue;
+            if (d > 14000) continue;
+            out.push({ key: b.key, name: b.name, x: Math.round(x), y: Math.round(y), active: focusKey === b.key });
+        }
+        labels.value = out;
+    }
+
     // 自适应分辨率
     fpsAcc += dt; fpsCount++;
     if (fpsAcc >= 1) {
@@ -533,19 +615,64 @@ const kd = e => onKey(e, true);
 const ku = e => onKey(e, false);
 
 let dragging = false, lx = 0, ly = 0;
+let movedPx = 0;
 function pDown(e) {
     dragging = true; isDragging.value = true;
     const t = e.touches ? e.touches[0] : e;
     lx = t.clientX; ly = t.clientY;
+    movedPx = 0;
 }
 function pMove(e) {
     if (!dragging) return;
     const t = e.touches ? e.touches[0] : e;
+    movedPx += Math.abs(t.clientX - lx) + Math.abs(t.clientY - ly);
     yaw -= (t.clientX - lx) * 0.0038;
     pitch = Math.max(-1.25, Math.min(1.25, pitch + (t.clientY - ly) * 0.0038));
     lx = t.clientX; ly = t.clientY;
 }
-function pUp() { dragging = false; isDragging.value = false; }
+function pUp(e) {
+    dragging = false; isDragging.value = false;
+    // 位移很小视为「点击」，做一次拾取
+    if (movedPx <= 8) {
+        const t = e && (e.changedTouches ? e.changedTouches[0] : e);
+        if (t && t.clientX !== undefined) pickBody(t.clientX, t.clientY);
+    }
+}
+
+/* ===================== 点击拾取 → 相机飞掠 + 信息面板 ===================== */
+function pickBody(cx, cy) {
+    if (!camera || !cv.value || !planets.length) return;
+    const rect = cv.value.getBoundingClientRect();
+    ndc.x = ((cx - rect.left) / rect.width) * 2 - 1;
+    ndc.y = -((cy - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(ndc, camera);
+    const hits = raycaster.intersectObjects(planets.map(p => p.mesh), false);
+    if (!hits.length) return;
+    const key = hits[0].object.userData.key;
+    if (key) focusBody(key);
+}
+
+function focusBody(key) {
+    const b = BODIES.find(x => x.key === key);
+    if (!b) return;
+    const p = posMap[b.key];
+    focusKey = key;
+    selected.value = {
+        key: b.key,
+        name: b.name,
+        desc: b.desc,
+        gravity: b.gravity,
+        color: b.color,
+        distance: fmtDist(Math.max(0, camPos.distanceTo(p) - b.r)),
+        detailPath: (b.key === 'sun' || b.key === 'moon') ? '/solar-system' : '/detail/planet/' + b.key
+    };
+    jump(key);
+}
+
+function closeSelected() {
+    selected.value = null;
+    focusKey = null;
+}
 
 function fmtDist(d) {
     const km = d * 100;
@@ -600,6 +727,8 @@ function jump(bodyKey) {
 function reset() { jump('earth'); }
 
 function onDistChange() {
+    // 距离比例变化会让轨道半径整体缩放，小行星带需要同步重建
+    if (typeof buildBeltMatrices === 'function') buildBeltMatrices();
     rebuildOrbitRings();
     // 位置变了，跳到当前位置最近的天体附近避免卡进星球里
     computePositions();
@@ -668,6 +797,32 @@ onBeforeUnmount(() => {
 
         <div class="warp-overlay" :class="{ on: warping }"></div>
 
+        <!-- 行星标签：跟随 3D 投影位置，点击可直接飞掠 -->
+        <div class="planet-labels">
+            <button v-for="l in labels" :key="l.key" class="planet-label" :class="{ active: l.active }"
+                    :style="{ left: l.x + 'px', top: l.y + 'px' }" @click="focusBody(l.key)">
+                <span class="pl-dot"></span>{{ l.name }}
+            </button>
+        </div>
+
+        <!-- 选中天体：相机飞掠后弹出的信息面板 -->
+        <transition name="bp">
+            <div v-if="selected" class="body-panel" :style="{ '--body-color': selected.color }">
+                <button class="bp-close" @click="closeSelected" aria-label="关闭面板"><i class="fas fa-xmark"></i></button>
+                <div class="bp-orb"></div>
+                <h3 class="bp-name">{{ selected.name }}</h3>
+                <p class="bp-desc">{{ selected.desc }}</p>
+                <div class="bp-stats">
+                    <div class="bp-stat"><span class="k">表面重力</span><span class="v">{{ selected.gravity }}</span></div>
+                    <div class="bp-stat"><span class="k">当前距离</span><span class="v">{{ selected.distance }}</span></div>
+                </div>
+                <div class="bp-actions">
+                    <router-link :to="selected.detailPath" class="btn btn-primary"><i class="fas fa-circle-info"></i> 查看详情</router-link>
+                    <button class="btn btn-ghost" @click="closeSelected"><i class="fas fa-arrow-left"></i> 继续飞行</button>
+                </div>
+            </div>
+        </transition>
+
         <div class="hud hud-tl" :class="{ 'hud-live': isDragging }">
             <div class="hud-title"><i class="fas fa-location-crosshairs"></i> 航行状态</div>
             <div class="hud-row"><span class="k">最近天体</span><span class="v accent">{{ nearest.name }}</span></div>
@@ -683,7 +838,7 @@ onBeforeUnmount(() => {
             <div class="hud-row"><span class="k">模拟经过</span><span class="v small">{{ simLabel }}</span></div>
         </div>
 
-        <div class="hud-hint">拖拽环视 · W/S 加速减速 · A/D 转向 · Q/E 俯仰</div>
+        <div class="hud-hint">拖拽环视 · <b>点击天体飞掠过去</b> · W/S 加速减速 · A/D 转向 · Q/E 俯仰</div>
 
         <div class="flight-ctl">
             <div class="ctl-group">

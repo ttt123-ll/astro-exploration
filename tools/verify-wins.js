@@ -161,12 +161,7 @@ const check = (n, c, e) => {
     check('连点为虚线起始状态（未描绘）', cons && parseFloat(cons.dashOffset) > 100, cons && cons.dashOffset);
     check('有星点与拉丁名水印', cons && cons.dots >= 5 && cons.watermark, cons);
 
-    const consBox = await p.evaluate(() => {
-        const c = document.querySelector('.cons-card');
-        c.scrollIntoView({ block: 'center' });
-        const r = c.getBoundingClientRect();
-        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-    });
+    await p.evaluate(() => document.querySelector('.cons-card')?.scrollIntoView({ block: 'center' }));
     await sleep(500);
     const consBox2 = await p.evaluate(() => {
         const c = document.querySelector('.cons-card');

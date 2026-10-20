@@ -5544,3 +5544,153 @@ a, button, .gallery-item, .feature-card, .planet-card, .type-card, .cons-card, .
     opacity: 1;
     transform: translateY(0);
 }
+
+/* ==================================================================
+   SpaceFlight：行星标签 + 点击飞掠信息面板（批次 2）
+   ================================================================== */
+
+.planet-labels {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 6;
+    overflow: hidden;
+}
+
+.planet-label {
+    position: absolute;
+    transform: translate(-50%, -150%);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.18rem 0.6rem 0.18rem 0.45rem;
+    border-radius: 50px;
+    background: rgba(6, 10, 20, 0.55);
+    border: 1px solid rgba(159, 212, 248, 0.28);
+    color: #d7e3f7;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    cursor: pointer;
+    pointer-events: auto;
+    backdrop-filter: blur(6px);
+    transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease, transform 0.25s ease;
+}
+
+.planet-label .pl-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-cyan);
+    box-shadow: 0 0 8px var(--color-cyan);
+}
+
+.planet-label:hover {
+    color: #fff;
+    border-color: rgba(159, 212, 248, 0.7);
+    background: rgba(20, 32, 52, 0.85);
+    transform: translate(-50%, -165%) scale(1.06);
+}
+
+.planet-label.active {
+    color: var(--color-gold);
+    border-color: var(--color-gold);
+    box-shadow: 0 0 16px rgba(216, 224, 244, 0.35);
+}
+
+/* 选中天体信息面板 */
+.body-panel {
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 320px;
+    max-width: calc(100vw - 3rem);
+    z-index: 9;
+    padding: 1.5rem 1.4rem 1.3rem;
+    border-radius: 18px;
+    background: rgba(8, 12, 24, 0.82);
+    border: 1px solid color-mix(in srgb, var(--body-color, #9d8cf0) 48%, transparent);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 40px color-mix(in srgb, var(--body-color, #9d8cf0) 22%, transparent);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+.bp-close {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.7rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(159, 212, 248, 0.25);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.bp-close:hover { color: #fff; border-color: var(--color-cyan); }
+
+.bp-orb {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    margin-bottom: 0.9rem;
+    background: radial-gradient(circle at 32% 30%, #fff 0%, var(--body-color, #9d8cf0) 45%, #0a0d18 100%);
+    box-shadow: 0 0 26px color-mix(in srgb, var(--body-color, #9d8cf0) 60%, transparent);
+}
+
+.bp-name {
+    font-family: var(--font-title);
+    font-size: 1.4rem;
+    letter-spacing: 0.08em;
+    color: var(--body-color, var(--color-gold));
+    margin-bottom: 0.5rem;
+}
+
+.bp-desc {
+    color: var(--color-text-secondary);
+    font-size: 0.84rem;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+.bp-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7rem;
+    margin-bottom: 1.2rem;
+}
+
+.bp-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 10px;
+    background: rgba(159, 212, 248, 0.06);
+    border: 1px solid rgba(159, 212, 248, 0.14);
+}
+
+.bp-stat .k { font-size: 0.68rem; color: var(--color-text-muted); letter-spacing: 0.08em; }
+.bp-stat .v { font-size: 0.86rem; color: var(--color-gold); font-variant-numeric: tabular-nums; }
+
+.bp-actions { display: flex; flex-direction: column; gap: 0.6rem; }
+.bp-actions .btn { justify-content: center; font-size: 0.85rem; padding: 0.6rem 1rem; }
+
+/* 面板进出场 */
+.bp-enter-active, .bp-leave-active { transition: opacity 0.32s ease, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
+.bp-enter-from, .bp-leave-to { opacity: 0; transform: translateY(-50%) translateX(28px) scale(0.96); }
+
+@media (max-width: 768px) {
+    .planet-label { font-size: 0.64rem; padding: 0.14rem 0.5rem; }
+    .body-panel {
+        right: 50%;
+        top: auto;
+        bottom: 1rem;
+        transform: translateX(50%);
+        width: calc(100vw - 2rem);
+    }
+    .bp-enter-from, .bp-leave-to { transform: translateX(50%) translateY(24px) scale(0.96); }
+}
