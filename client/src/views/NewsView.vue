@@ -4,6 +4,7 @@ import api from '../api';
 import { relTime, clockTime } from '../utils/time';
 import PageNav from '../components/PageNav.vue';
 import BookSection from '../components/BookSection.vue';
+import PageHeader from '../components/PageHeader.vue';
 
 const rows = ref([]);
 const tags = ref([]);
@@ -147,11 +148,7 @@ onBeforeUnmount(stopAuto);
 <template>
     <div class="container">
         <PageNav title="宇宙新闻" />
-        <div class="page-header">
-            <span class="page-kicker">COSMIC NEWS</span>
-            <h1>宇宙新闻</h1>
-            <p>新闻以数据库记录实时更新——按关键词搜索、按时间与主题筛选，追踪人类探索宇宙的最新足迹。</p>
-        </div>
+        <PageHeader kicker="COSMIC NEWS" title="宇宙新闻" icon="fa-newspaper" :stats="[{ v: String(total || 24), l: '新闻记录' }, { v: '30 秒', l: '自动同步' }]" subtitle="新闻以数据库记录实时更新——按关键词搜索、按时间与主题筛选，追踪人类探索宇宙的最新足迹。" />
 
         <!-- 实时状态条 -->
         <div class="live-bar" :class="{ fresh }">

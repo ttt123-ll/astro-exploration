@@ -3,6 +3,7 @@ import planets from '../data/planets';
 import VideoSection from '../components/VideoSection.vue';
 import PageNav from '../components/PageNav.vue';
 import BookSection from '../components/BookSection.vue';
+import PageHeader from '../components/PageHeader.vue';
 const key = p => (p.englishName || '').toLowerCase();
 const fmt = n => Number(n).toLocaleString('zh-CN');
 </script>
@@ -10,11 +11,7 @@ const fmt = n => Number(n).toLocaleString('zh-CN');
 <template>
     <div class="container">
         <PageNav title="太阳系行星" />
-        <div class="page-header">
-            <span class="page-kicker">SOLAR SYSTEM</span>
-            <h1>太阳系</h1>
-            <p>探索我们所在的恒星系统——八大行星围绕太阳运行，点击行星卡片查看详细介绍。</p>
-        </div>
+        <PageHeader kicker="SOLAR SYSTEM" title="太阳系" icon="fa-sun" :stats="[{ v: '8', l: '行星' }, { v: '99.86%', l: '太阳质量占比' }, { v: '46 亿年', l: '太阳系年龄' }]" subtitle="探索我们所在的恒星系统——八大行星围绕太阳运行，点击行星卡片查看详细介绍。" />
 
         <div class="solar-system-view">
             <div class="sun"></div>

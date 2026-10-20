@@ -405,6 +405,7 @@ chore: 构建/工具  perf: 性能优化
 | `tools/verify-facts.js` | 四季星座页区块 | 13 |
 | `tools/verify-scrollback.js` | 返回首页滚动位置恢复 | 7 |
 | `tools/verify-books.js` | 各页面主题书单（13 个页面 + 首页无） | 54 |
+| `tools/verify-header.js` | 增强版页头（标题/kicker/数据卡，11 个页面） | 71 |
 
 ```bash
 npm run test:all                # API + 前端回归

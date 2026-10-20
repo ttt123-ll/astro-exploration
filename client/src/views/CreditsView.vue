@@ -3,6 +3,7 @@ import videos from '../data/videos';
 import official from '../data/official';
 import gallery from '../data/gallery';
 import BookSection from '../components/BookSection.vue';
+import PageHeader from '../components/PageHeader.vue';
 
 // 图片出处统计
 const creditCount = {};
@@ -62,11 +63,7 @@ const verify = [
 
 <template>
     <div class="container">
-        <div class="page-header">
-            <span class="page-kicker">SOURCES & LICENSES</span>
-            <h1>素材来源与版权说明</h1>
-            <p>本站所有视频、图片、新闻素材均来自公开渠道，来源与授权在此完整说明，便于核验。</p>
-        </div>
+        <PageHeader kicker="SOURCES & LICENSES" title="素材来源与版权说明" icon="fa-copyright" :stats="[{ v: '4', l: '素材类别' }, { v: '100%', l: '来源可查' }]" subtitle="本站所有视频、图片、新闻素材均来自公开渠道，来源与授权在此完整说明，便于核验。" />
 
         <!-- 总览 -->
         <div class="credit-grid">

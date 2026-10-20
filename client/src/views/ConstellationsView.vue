@@ -4,6 +4,7 @@ import constellations from '../data/constellations';
 import { facts } from '../data/site';
 import VideoSection from '../components/VideoSection.vue';
 import BookSection from '../components/BookSection.vue';
+import PageHeader from '../components/PageHeader.vue';
 
 const season = ref('all');
 const seasons = ['all', '春季', '夏季', '秋季', '冬季'];
@@ -34,11 +35,7 @@ const scaleIdx = ref(0);
 
 <template>
     <div class="container">
-        <div class="page-header">
-            <span class="page-kicker">CONSTELLATIONS</span>
-            <h1>四季星座</h1>
-            <p>春季看狮子座，夏季寻天蝎座，秋季望飞马座，冬季观猎户座——每一季都有属于自己的星座故事。</p>
-        </div>
+        <PageHeader kicker="CONSTELLATIONS" title="四季星座" icon="fa-star" :stats="[{ v: String(constellations.length), l: '代表星座' }, { v: '4', l: '观测季节' }]" subtitle="春季看狮子座，夏季寻天蝎座，秋季望飞马座，冬季观猎户座——每一季都有属于自己的星座故事。" />
 
         <!-- 天文冷知识（原首页区块移入） -->
         <section class="facts-widget">

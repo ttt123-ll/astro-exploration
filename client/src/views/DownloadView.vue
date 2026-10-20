@@ -1,16 +1,13 @@
 <script setup>
 import { useUi } from '../store/ui';
 import BookSection from '../components/BookSection.vue';
+import PageHeader from '../components/PageHeader.vue';
 const ui = useUi();
 </script>
 
 <template>
     <div class="container" style="max-width:760px;">
-        <div class="page-header">
-            <span class="page-kicker">DEPLOYMENT</span>
-            <h1>系统部署说明</h1>
-            <p>本系统采用 Vue 3 前端 + Node.js Express 后端 + MySQL 数据库，一键启动即可运行。</p>
-        </div>
+        <PageHeader kicker="DEPLOYMENT" title="系统部署说明" icon="fa-download" :stats="[{ v: '2', l: '部署方式' }, { v: '1 键', l: '一键启动' }]" subtitle="本系统采用 Vue 3 前端 + Node.js Express 后端 + MySQL 数据库，一键启动即可运行。" />
 
         <div class="scale-card" style="text-align:center;">
             <div class="facts-icon" style="margin-bottom:1.4rem;"><i class="fas fa-rocket"></i></div>

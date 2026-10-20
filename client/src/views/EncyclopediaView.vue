@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import content from '../data/content';
 import VideoSection from '../components/VideoSection.vue';
 import BookSection from '../components/BookSection.vue';
+import PageHeader from '../components/PageHeader.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -39,11 +40,7 @@ const BH_STATS = [
 
 <template>
     <div class="container">
-        <div class="page-header">
-            <span class="page-kicker">ASTRONOMY ENCYCLOPEDIA</span>
-            <h1>天文百科</h1>
-            <p>从恒星的诞生与死亡，到星系的宏大聚落，再到连光都无法逃脱的黑洞——这里收录了宇宙中最主要的天体类型与演化历程。</p>
-        </div>
+        <PageHeader kicker="ASTRONOMY ENCYCLOPEDIA" title="天文百科" icon="fa-book-open" :stats="[{ v: '6', l: '恒星演化阶段' }, { v: '4', l: '星系类型' }, { v: '4', l: '黑洞类型' }]" subtitle="从恒星的诞生与死亡，到星系的宏大聚落，再到连光都无法逃脱的黑洞——这里收录了宇宙中最主要的天体类型与演化历程。" />
 
         <!-- 分类切换 -->
         <div class="enc-tabs">
