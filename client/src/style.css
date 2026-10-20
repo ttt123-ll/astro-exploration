@@ -4770,3 +4770,222 @@ a, button, .gallery-item, .feature-card, .planet-card, .type-card, .cons-card, .
     .hn-live { top: 0.9rem; right: 0.9rem; }
     .hn-body p { -webkit-line-clamp: 2; }
 }
+/* ==================================================================
+   无障碍与交互细节（批次 A）
+   ================================================================== */
+
+/* —— 键盘焦点：只在键盘导航时显示描边，鼠标点击不显示 —— */
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-cyan);
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+/* 跳过导航链接：Tab 第一个焦点 */
+.skip-link {
+    position: fixed;
+    top: -100px;
+    left: 1rem;
+    z-index: 10000;
+    padding: 0.7rem 1.2rem;
+    border-radius: 0 0 10px 10px;
+    background: var(--gradient-primary);
+    color: #fff;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: top 0.25s ease;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+/* —— 减少动态效果：系统开启后关闭大部分动画与过渡 —— */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    html {
+        scroll-behavior: auto !important;
+    }
+
+    .cursor-glow,
+    .click-spark {
+        display: none !important;
+    }
+}
+
+/* —— 深色主题滚动条：半透明星尘风格 —— */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(157, 140, 240, 0.45) rgba(8, 11, 24, 0.6);
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(8, 11, 24, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(157, 140, 240, 0.55), rgba(126, 200, 176, 0.45));
+    border-radius: 8px;
+    border: 2px solid rgba(8, 11, 24, 0.8);
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(157, 140, 240, 0.85), rgba(126, 200, 176, 0.7));
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* —— 选中文本 —— */
+::selection {
+    background: rgba(157, 140, 240, 0.38);
+    color: #fff;
+    text-shadow: 0 0 12px rgba(206, 216, 240, 0.6);
+}
+
+/* —— 导航激活态：渐变流光下划线 + 发光小点 —— */
+.nav-links a.active {
+    color: var(--color-gold);
+}
+
+.nav-links a.active::after {
+    width: 100%;
+    background: linear-gradient(90deg, transparent, var(--color-cyan), var(--color-gold), transparent);
+    background-size: 200% 100%;
+    animation: navFlow 3.2s linear infinite;
+}
+
+@keyframes navFlow {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+}
+
+.nav-links a.active::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -12px;
+    width: 5px;
+    height: 5px;
+    margin-left: -2.5px;
+    border-radius: 50%;
+    background: var(--color-cyan);
+    box-shadow: 0 0 10px 2px rgba(120, 220, 255, 0.85);
+    animation: navDotPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes navDotPulse {
+    0%, 100% { opacity: 0.45; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.15); }
+}
+
+/* —— 移动端汉堡菜单展开动效 —— */
+@media (max-width: 1024px) {
+    .nav-links {
+        transform-origin: top center;
+        animation: menuDrop 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .nav-links a {
+        animation: menuItemIn 0.36s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    }
+
+    .nav-links a:nth-child(1) { animation-delay: 0.03s; }
+    .nav-links a:nth-child(2) { animation-delay: 0.06s; }
+    .nav-links a:nth-child(3) { animation-delay: 0.09s; }
+    .nav-links a:nth-child(4) { animation-delay: 0.12s; }
+    .nav-links a:nth-child(5) { animation-delay: 0.15s; }
+    .nav-links a:nth-child(6) { animation-delay: 0.18s; }
+    .nav-links a:nth-child(7) { animation-delay: 0.21s; }
+
+    .nav-links a.active::before {
+        display: none;
+    }
+}
+
+@keyframes menuDrop {
+    from { opacity: 0; transform: translateY(-12px) scaleY(0.96); }
+    to { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+@keyframes menuItemIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* —— 页脚行星彩蛋：hover 转动 —— */
+.footer-planets {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2.2rem 0 0.6rem;
+    flex-wrap: wrap;
+}
+
+.footer-planet {
+    --p-color: #7fb0ee;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    position: relative;
+    background: radial-gradient(circle at 32% 30%, #fff 0%, var(--p-color) 38%, rgba(0, 0, 0, 0.85) 100%);
+    box-shadow: 0 0 18px rgba(157, 140, 240, 0.25), inset -6px -4px 12px rgba(0, 0, 0, 0.55);
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease;
+    cursor: default;
+}
+
+.footer-planet::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 1px solid rgba(206, 216, 240, 0.22);
+    transform: rotateX(72deg);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.footer-planet:hover {
+    transform: scale(1.22) rotate(360deg);
+    box-shadow: 0 0 26px rgba(157, 140, 240, 0.6), inset -6px -4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.footer-planet:hover::after {
+    opacity: 1;
+}
+
+/* —— 汉堡按钮展开态：图标旋转 + 边框高亮 —— */
+.menu-toggle.open {
+    border-color: rgba(120, 220, 255, 0.6);
+    color: var(--color-cyan);
+    box-shadow: 0 0 16px rgba(120, 220, 255, 0.35);
+}
+
+.menu-toggle.open i {
+    transform: rotate(90deg);
+}
+
+.menu-toggle i {
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#main-content:focus {
+    outline: none;
+}

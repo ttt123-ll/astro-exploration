@@ -16,12 +16,17 @@ auth.fetchMe();
 </script>
 
 <template>
+    <!-- 键盘用户第一个 Tab 焦点：跳转到主要内容 -->
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
+
     <VideoBg />
     <PageBackdrop />
     <StarField />
     <NavBar />
     <SearchOverlay />
-    <router-view />
+    <div id="main-content" tabindex="-1">
+        <router-view />
+    </div>
     <SiteFooter />
     <BackToTop />
     <ChatWidget />

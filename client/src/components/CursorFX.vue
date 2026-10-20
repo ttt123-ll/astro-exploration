@@ -4,6 +4,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 // 鼠标光晕拖尾 + 点击星尘粒子
 const glow = ref(null);
 const particles = ref([]);
+const hovering = ref(false);
 let mx = -100, my = -100, gx = -100, gy = -100, raf;
 
 function loop() {
@@ -17,6 +18,12 @@ function loop() {
 
 function onMove(e) {
     mx = e.clientX; my = e.clientY;
+}
+
+// 悬停在可交互元素上时，光晕放大并变亮
+const INTERACTIVE = 'a, button, [role="button"], .gallery-item, .news-card, .book-card, .cons-card, .obj-card, .quiz-option, .planet-card';
+function onOver(e) {
+    hovering.value = !!(e.target && e.target.closest && e.target.closest(INTERACTIVE));
 }
 
 function onClick(e) {
@@ -46,18 +53,20 @@ function onClick(e) {
 
 onMounted(() => {
     window.addEventListener('mousemove', onMove, { passive: true });
+    window.addEventListener('mouseover', onOver, { passive: true });
     window.addEventListener('click', onClick);
     loop();
 });
 onBeforeUnmount(() => {
     window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseover', onOver);
     window.removeEventListener('click', onClick);
     cancelAnimationFrame(raf);
 });
 </script>
 
 <template>
-    <div class="cursor-glow" ref="glow"></div>
+    <div class="cursor-glow" :class="{ hovering }" ref="glow"></div>
     <transition-group name="spark" tag="div">
         <span v-for="p in particles" :key="p.id" class="click-spark"
               :style="{ left: p.x + 'px', top: p.y + 'px', fontSize: p.r * 4 + 'px',
@@ -77,6 +86,15 @@ onBeforeUnmount(() => {
     z-index: 9999;
     box-shadow: 0 0 14px rgba(157, 140, 240, 0.6);
     mix-blend-mode: screen;
+    transition: width 0.22s ease, height 0.22s ease, margin 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease;
+}
+
+/* 悬停在可点击元素上：光晕变大、变亮、带青色边缘 */
+.cursor-glow.hovering {
+    width: 30px; height: 30px;
+    margin: -15px 0 0 -15px;
+    background: radial-gradient(circle, rgba(226, 240, 255, 0.95), rgba(120, 220, 255, 0.45) 50%, transparent 72%);
+    box-shadow: 0 0 24px rgba(120, 220, 255, 0.85), 0 0 6px rgba(255, 255, 255, 0.7);
 }
 .click-spark {
     position: fixed;

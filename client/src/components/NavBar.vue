@@ -62,8 +62,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
                     <router-link to="/login" class="nav-auth-link">登录</router-link>
                     <router-link to="/register" class="nav-auth-link nav-auth-primary">注册</router-link>
                 </div>
-                <button class="search-open-btn" title="全站搜索（快捷键 / ）" @click="ui.openSearch()"><i class="fas fa-magnifying-glass"></i></button>
-                <button class="menu-toggle" @click="menuOpen = !menuOpen"><i class="fas fa-bars"></i></button>
+                <button class="search-open-btn" title="全站搜索（快捷键 / ）" aria-label="全站搜索" @click="ui.openSearch()"><i class="fas fa-magnifying-glass"></i></button>
+                <button class="menu-toggle" :class="{ open: menuOpen }" :aria-expanded="menuOpen" aria-label="展开导航菜单"
+                        @click="menuOpen = !menuOpen">
+                    <i class="fas" :class="menuOpen ? 'fa-xmark' : 'fa-bars'"></i>
+                </button>
             </div>
         </div>
     </nav>
