@@ -17,7 +17,7 @@ const check = (n, c, e) => {
     const errs = [];
     p.on('pageerror', e => errs.push(e.message));
 
-    await p.goto(BASE + '/', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(2000);
 
     // 1. 跳过导航链接
@@ -69,7 +69,7 @@ const check = (n, c, e) => {
     check('定义了 ::selection 选中色', selColor.includes('::selection') && selColor.includes('background'), selColor);
 
     // 5. 导航激活态：发光点 + 流动下划线
-    await p.goto(BASE + '/news', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/news', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1500);
     const navActive = await p.evaluate(() => {
         const a = document.querySelector('.nav-links a.active');
@@ -129,7 +129,7 @@ const check = (n, c, e) => {
     // 8. 减少动态效果
     const p2 = await b.newPage();
     await p2.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
-    await p2.goto(BASE + '/', { waitUntil: 'networkidle2' });
+    await p2.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1200);
     const reduced = await p2.evaluate(() => {
         const el = document.querySelector('.navbar');
@@ -150,7 +150,7 @@ const check = (n, c, e) => {
     await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await sleep(800);
     await p.screenshot({ path: 'F:/天文科普/shots/batch-a-footer.png' });
-    await p.goto(BASE + '/news', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/news', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1200);
     await p.keyboard.press('Tab'); await p.keyboard.press('Tab');
     await sleep(400);

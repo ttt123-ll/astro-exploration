@@ -26,7 +26,7 @@ const NO_NAV = ['/encyclopedia', '/constellations', '/credits', '/explore', '/de
     const p = await b.newPage();
     await p.setViewport({ width: 1440, height: 900 });
 
-    await p.goto(BASE + '/login', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await p.type('input[autocomplete="username"]', 'admin');
     await p.type('input[autocomplete="current-password"]', 'admin123');
     await p.click('button[type="submit"]');
@@ -34,7 +34,7 @@ const NO_NAV = ['/encyclopedia', '/constellations', '/credits', '/explore', '/de
 
     console.log('\n=== 各页面导航条 ===');
     for (const [url, title] of PAGES) {
-        await p.goto(BASE + url, { waitUntil: 'networkidle2' });
+        await p.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 45000 });
         await new Promise(r => setTimeout(r, 1200));
         const info = await p.evaluate(() => {
             const nav = document.querySelector('.page-nav');
@@ -54,32 +54,32 @@ const NO_NAV = ['/encyclopedia', '/constellations', '/credits', '/explore', '/de
     }
 
     console.log('\n=== 首页不应出现导航条 ===');
-    await p.goto(BASE + '/', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 1500));
     check('首页无导航条', await p.evaluate(() => !document.querySelector('.page-nav')));
 
     console.log('\n=== 首页没有入口的页面不应出现导航条 ===');
     for (const url of NO_NAV) {
-        await p.goto(BASE + url, { waitUntil: 'networkidle2' });
+        await p.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 45000 });
         await new Promise(r => setTimeout(r, 900));
         const n = await p.evaluate(() => document.querySelectorAll('.page-nav').length);
         check(url + ' 无导航条', n === 0, n);
     }
 
     console.log('\n=== 点击「返回首页」 ===');
-    await p.goto(BASE + '/planet-show', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/planet-show', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 1200));
     await p.click('.pn-home');
     await new Promise(r => setTimeout(r, 1800));
     check('点击后回到首页', new URL(p.url()).pathname === '/', p.url());
 
-    await p.goto(BASE + '/planet-show', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/planet-show', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 1500));
     await p.screenshot({ path: 'F:\\天文科普\\shots\\pagenav.png' });
 
     const errs = [];
     p.on('pageerror', e => errs.push(String(e.message)));
-    await p.reload({ waitUntil: 'networkidle2' });
+    await p.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 1200));
     check('无 JS 错误', errs.length === 0, errs.slice(0, 2));
 

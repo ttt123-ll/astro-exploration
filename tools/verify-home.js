@@ -17,7 +17,7 @@ const check = (n, c, e) => {
     const errs = [];
     p.on('pageerror', e => errs.push(e.message));
 
-    await p.goto(BASE + '/', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(2500);
 
     // 1. 进度条

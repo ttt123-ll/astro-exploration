@@ -7,13 +7,13 @@ const BASE = process.env.BASE || 'http://127.0.0.1:3000';
     const b = await puppeteer.launch({ executablePath: EDGE, headless: 'new', args: ['--no-sandbox'] });
     const p = await b.newPage();
     await p.setViewport({ width: 1440, height: 900 });
-    await p.goto(BASE + '/login', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await p.type('input[autocomplete="username"]', 'admin');
     await p.type('input[autocomplete="current-password"]', 'admin123');
     await p.click('button[type="submit"]');
     await new Promise(r => setTimeout(r, 2500));
 
-    await p.goto(BASE + '/constellations', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/constellations', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 2000));
     await p.evaluate(() => document.querySelector('.scale-section')?.scrollIntoView({ block: 'start' }));
     await new Promise(r => setTimeout(r, 1200));
@@ -26,7 +26,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:3000';
     console.log('已截图 cons-books');
 
     // 首页整体
-    await p.goto(BASE + '/', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 2000));
     await p.screenshot({ path: 'F:\\天文科普\\shots\\home-final.png' });
     console.log('已截图 home-final');

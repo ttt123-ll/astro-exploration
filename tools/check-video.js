@@ -7,7 +7,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:3000';
     const b = await puppeteer.launch({ executablePath: EDGE, headless: 'new', args: ['--no-sandbox'] });
     const p = await b.newPage();
     await p.setViewport({ width: 1440, height: 900 });
-    await p.goto(BASE + '/', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 4000));
 
     const info = await p.evaluate(() => {

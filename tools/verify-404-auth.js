@@ -19,7 +19,7 @@ const check = (n, c, e) => {
 
     // ===== 404 =====
     console.log('=== 404 星际漂流页 ===');
-    await p.goto(BASE + '/this-page-does-not-exist', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/this-page-does-not-exist', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1500);
     const nf = await p.evaluate(() => {
         const astro = document.querySelector('.nf-astro');
@@ -47,7 +47,7 @@ const check = (n, c, e) => {
 
     // ===== 登录页 =====
     console.log('\n=== 登录页星云与玻璃卡片 ===');
-    await p.goto(BASE + '/login', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1500);
     const login = await p.evaluate(() => {
         const neb = document.querySelector('.auth-nebula');
@@ -68,7 +68,7 @@ const check = (n, c, e) => {
 
     // ===== 注册页 =====
     console.log('\n=== 注册页 ===');
-    await p.goto(BASE + '/register', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/register', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1500);
     const reg = await p.evaluate(() => ({
         hasNebula: !!document.querySelector('.auth-nebula'),
@@ -81,10 +81,10 @@ const check = (n, c, e) => {
     check('无 JS 错误', errs.length === 0, errs.slice(0, 3));
 
     // 截图
-    await p.goto(BASE + '/this-page-does-not-exist', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/this-page-does-not-exist', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1200);
     await p.screenshot({ path: 'F:/天文科普/shots/batch-d-404.png' });
-    await p.goto(BASE + '/login', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1200);
     await p.screenshot({ path: 'F:/天文科普/shots/batch-d-login.png' });
 

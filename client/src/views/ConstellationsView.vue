@@ -1,91 +1,139 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed } from 'vue';
 import constellations from '../data/constellations';
-import { facts } from '../data/site';
+import { projectFigure } from '../data/constellationLines';
 import VideoSection from '../components/VideoSection.vue';
 import BookSection from '../components/BookSection.vue';
 import PageHeader from '../components/PageHeader.vue';
 
-const season = ref('all');
-const seasons = ['all', '春季', '夏季', '秋季', '冬季'];
-const list = computed(() => season.value === 'all' ? constellations : constellations.filter(c => c.season === season.value));
+/* ===================== 四季配色体系 ===================== */
+const SEASONS = [
+    { key: '春季', color: '#6ec8a8', rgb: '110,200,168', months: [3, 4, 5], icon: 'fa-seedling', name: '春 · 狮子与室女' },
+    { key: '夏季', color: '#6ea4e8', rgb: '110,164,232', months: [6, 7, 8], icon: 'fa-sun', name: '夏 · 天蝎与天鹅' },
+    { key: '秋季', color: '#e8a06e', rgb: '232,160,110', months: [9, 10, 11], icon: 'fa-leaf', name: '秋 · 飞马与仙后' },
+    { key: '冬季', color: '#9fd8f0', rgb: '159,216,240', months: [12, 1, 2], icon: 'fa-snowflake', name: '冬 · 猎户与金牛' }
+];
+const SEASON_MAP = Object.fromEntries(SEASONS.map(s => [s.key, s]));
+
+/* 按当前月份自动选中当季 */
+const nowMonth = new Date().getMonth() + 1;
+const currentSeason = (SEASONS.find(s => s.months.includes(nowMonth)) || SEASONS[3]).key;
+const season = ref(currentSeason);
+const tabs = ['全部', '春季', '夏季', '秋季', '冬季'];
+
+/* "12月-2月" → [12,1,2] */
+function viewMonths(bestView) {
+    const nums = String(bestView || '').match(/\d{1,2}/g) || [];
+    if (nums.length < 2) return [];
+    let a = Number(nums[0]), b = Number(nums[1]);
+    const out = [];
+    for (let i = 0; i < 12; i++) {
+        const m = (a + i - 1) % 12 + 1;
+        out.push(m);
+        if (m === b) break;
+    }
+    return out;
+}
+
+const isRecommended = c => viewMonths(c.bestView).includes(nowMonth);
+
+/* 当季星座排前 + 本月推荐优先 */
+const list = computed(() => {
+    const base = season.value === '全部' ? constellations.slice() : constellations.filter(c => c.season === season.value);
+    const order = season.value === '全部'
+        ? (c) => (c.season === currentSeason ? 0 : 1)
+        : () => 0;
+    return base.sort((a, b) => {
+        const oa = order(a), ob = order(b);
+        if (oa !== ob) return oa - ob;
+        const ra = isRecommended(a) ? 0 : 1, rb = isRecommended(b) ? 0 : 1;
+        if (ra !== rb) return ra - rb;
+        return 0;
+    });
+});
+
+/* ===================== 真实星座连线 ===================== */
+const figureCache = new Map();
+function figureOf(c) {
+    if (!figureCache.has(c.latinName)) figureCache.set(c.latinName, projectFigure(c.latinName));
+    return figureCache.get(c.latinName);
+}
 const img = c => '/assets/images/constellation_' + (c.latinName || '').toLowerCase() + '.jpg';
 
-/* —— 星座连线：按名称散列选一套折线图案，hover 时描绘 —— */
-const LINE_PATTERNS = [
-    [[14, 74], [40, 52], [62, 64], [88, 30], [118, 46], [146, 24]],
-    [[12, 40], [38, 62], [66, 44], [92, 70], [124, 38], [148, 58]],
-    [[20, 66], [46, 40], [74, 58], [100, 26], [128, 48], [150, 32]],
-    [[18, 30], [44, 56], [70, 38], [96, 62], [122, 34], [144, 54]],
-    [[16, 58], [42, 34], [68, 52], [94, 28], [120, 60], [146, 40]]
-];
-function nameSeed(name) {
-    let h = 0;
-    for (const ch of String(name)) h = (h * 31 + ch.codePointAt(0)) % 997;
-    return h;
+/* ===================== 卡片 3D 微倾斜 ===================== */
+function tilt(e) {
+    const el = e.currentTarget;
+    const r = el.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    el.style.setProperty('--ry', (px * 9).toFixed(2) + 'deg');
+    el.style.setProperty('--rx', (-py * 7).toFixed(2) + 'deg');
 }
-const consDots = c => LINE_PATTERNS[nameSeed(c.name) % LINE_PATTERNS.length];
-const consLine = c => consDots(c).map(p => p[0] + ',' + p[1]).join(' ');
-
-/* —— 天文冷知识（原首页区块移入） —— */
-const factIdx = ref(0);
-let factAuto;
-function nextFact() { factIdx.value = (factIdx.value + 1) % facts.length; }
-onMounted(() => { factAuto = setInterval(nextFact, 4200); });
-onBeforeUnmount(() => clearInterval(factAuto));
-
-/* —— 宇宙尺度之旅（原首页区块移入） —— */
-const stages = [
-    { name: '地球', size: '直径 12,742 公里', w: 56, cls: 'planet', desc: '我们唯一的家园——一颗蓝色的岩石行星。对人类而言它浩瀚无边，但在宇宙尺度下，它只是一粒微尘。' },
-    { name: '木星', size: '直径 139,820 公里', w: 74, cls: 'planet', desc: '太阳系最大的行星，体积能装下1300多个地球。它的大红斑风暴已咆哮了至少300年。' },
-    { name: '太阳', size: '直径 139 万公里', w: 118, cls: '', desc: '太阳系的心脏，质量占整个太阳系的99.86%。它的光芒要8分多钟才能抵达地球。' },
-    { name: '太阳系', size: '直径约 90 亿公里（海王星轨道内）', w: 140, cls: '', desc: '八大行星的家园。以光速横穿海王星轨道也要约8小时——而这只是宇宙中一个微不足道的角落。' },
-    { name: '比邻星', size: '距离 4.2 光年', w: 158, cls: '', desc: '离太阳最近的恒星。目前最快的人类探测器飞过去也需要7万年以上——星际旅行任重道远。' },
-    { name: '银河系', size: '直径约 10 万光年', w: 205, cls: 'galaxy', desc: '我们所在的星系，包含1000亿到4000亿颗恒星。太阳只是其中一颗普通的中年恒星。' },
-    { name: '本星系群', size: '直径约 1000 万光年', w: 248, cls: 'galaxy', desc: '包含银河系、仙女座星系在内的约80个星系组成的"宇宙社区"，它们相互吸引、缓慢聚拢。' },
-    { name: '可观测宇宙', size: '直径约 930 亿光年', w: 300, cls: 'universe', desc: '我们所能看到的宇宙边界，其中藏着约2万亿个星系。而可观测宇宙之外，还有更广阔的未知。' }
-];
-const scaleIdx = ref(0);
-
+function resetTilt(e) {
+    const el = e.currentTarget;
+    el.style.setProperty('--rx', '0deg');
+    el.style.setProperty('--ry', '0deg');
+}
 </script>
 
 <template>
     <div class="container">
-        <PageHeader kicker="CONSTELLATIONS" title="四季星座" icon="fa-star" deco="stars" :stats="[{ v: String(constellations.length), l: '代表星座' }, { v: '4', l: '观测季节' }]" subtitle="春季看狮子座，夏季寻天蝎座，秋季望飞马座，冬季观猎户座——每一季都有属于自己的星座故事。" />
+        <PageHeader kicker="CONSTELLATIONS" title="四季星座" icon="fa-star" deco="stars"
+                    :stats="[
+                        { v: String(constellations.length), l: '代表星座' },
+                        { v: '4', l: '观测季节' },
+                        { v: currentSeason, l: '当季推荐' }
+                    ]"
+                    subtitle="春季看狮子座，夏季寻天蝎座，秋季望飞马座，冬季观猎户座——每一季都有属于自己的星空故事。" />
 
-        <!-- 天文冷知识（原首页区块移入） -->
-        <section class="facts-widget">
-            <div class="section-head">
-                <h2 class="section-title"><span class="title-icon"><i class="fas fa-star"></i></span>天文冷知识</h2>
-                <p class="section-subtitle">你知道吗？宇宙里藏着许多让人惊呼的小秘密</p>
-            </div>
-            <div class="facts-card" v-reveal>
-                <div class="facts-icon"><i class="fas fa-lightbulb"></i></div>
-                <div class="facts-tag">✦ {{ facts[factIdx].c }}</div>
-                <p class="facts-text">{{ facts[factIdx].t }}</p>
-                <div class="facts-actions">
-                    <button class="btn btn-gold" @click="nextFact"><i class="fas fa-shuffle"></i> 换一条</button>
-                </div>
-            </div>
-        </section>
-
-        <div class="filter-tabs">
-            <button v-for="s in seasons" :key="s" class="filter-tab" :class="{ active: season === s }" @click="season = s">
-                {{ s === 'all' ? '全部' : s + '星座' }}
+        <!-- 季节切换：每个季节有自己的颜色 -->
+        <div class="season-tabs">
+            <button v-for="t in tabs" :key="t" class="season-tab"
+                    :class="{ active: season === t }"
+                    :style="{ '--s-color': t === '全部' ? '#d8e0f4' : SEASON_MAP[t].color, '--s-rgb': t === '全部' ? '216,224,244' : SEASON_MAP[t].rgb }"
+                    @click="season = t">
+                <i v-if="t !== '全部'" class="fas" :class="SEASON_MAP[t].icon"></i>
+                {{ t === '全部' ? '全部星座' : t }}
+                <span v-if="t === currentSeason" class="tab-now">当季</span>
             </button>
         </div>
 
+        <p class="season-hint">
+            <i class="fas fa-location-dot"></i>
+            当前 {{ nowMonth }} 月，属于<b>{{ currentSeason }}</b>星空 · 本季共 {{ list.length }} 个星座{{ season === '全部' ? '，当季已置顶' : '' }}，带「本月推荐」的是此刻最值得看的
+        </p>
+
+        <!-- 星座卡片 -->
         <div class="cons-grid">
-            <router-link v-for="c in list" :key="c.name" :to="'/detail/constellation/' + c.latinName.toLowerCase()" class="cons-card" v-reveal>
+            <router-link v-for="c in list" :key="c.name"
+                         :to="'/detail/constellation/' + c.latinName.toLowerCase()"
+                         class="cons-card" v-reveal
+                         :style="{ '--c-color': SEASON_MAP[c.season].color, '--c-rgb': SEASON_MAP[c.season].rgb }"
+                         @mousemove="tilt" @mouseleave="resetTilt">
                 <div class="cons-img">
-                    <img :src="img(c)" :alt="c.name">
-                    <!-- 星座连线描绘动画 + 拉丁名水印 -->
-                    <svg class="cons-lines" viewBox="0 0 160 100" preserveAspectRatio="none" aria-hidden="true">
-                        <polyline :points="consLine(c)"></polyline>
-                        <circle v-for="(pt, pi) in consDots(c)" :key="pi" :cx="pt[0]" :cy="pt[1]" r="1.8"></circle>
+                    <img :src="img(c)" :alt="c.name" loading="lazy">
+
+                    <!-- 真实星座连线：hover 时逐段点亮 -->
+                    <svg v-if="figureOf(c)" class="cons-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                        <line v-for="(seg, si) in figureOf(c).lines" :key="'l' + si"
+                              :x1="figureOf(c).points[seg[0]].x" :y1="figureOf(c).points[seg[0]].y"
+                              :x2="figureOf(c).points[seg[1]].x" :y2="figureOf(c).points[seg[1]].y"
+                              pathLength="1" class="seg" :style="{ transitionDelay: (si * 0.1) + 's' }"></line>
+                        <circle v-for="(pt, pi) in figureOf(c).points" :key="'p' + pi"
+                                :cx="pt.x" :cy="pt.y" r="1.5" class="star" :style="{ transitionDelay: (pi * 0.05) + 's' }"></circle>
                     </svg>
+
+                    <!-- 顶部：季节角标 + 最佳观测月份 -->
+                    <div class="cons-badges">
+                        <span class="cons-season" :style="{ '--c-color': SEASON_MAP[c.season].color }">
+                            <i class="fas" :class="SEASON_MAP[c.season].icon"></i> {{ c.season }}
+                        </span>
+                        <span v-if="isRecommended(c)" class="cons-now"><i class="fas fa-bolt"></i> 本月推荐</span>
+                    </div>
+                    <span class="cons-view"><i class="fas fa-binoculars"></i> 最佳观测 {{ c.bestView }}</span>
                     <span class="cons-watermark">{{ c.latinName }}</span>
                 </div>
+
                 <div class="cons-body">
                     <div class="cons-head"><h3>{{ c.name }}</h3><span class="latin">{{ c.latinName }}</span></div>
                     <p>{{ c.legend.slice(0, 66) }}…</p>
@@ -97,49 +145,294 @@ const scaleIdx = ref(0);
             </router-link>
         </div>
 
-        <!-- 宇宙尺度之旅（原首页区块移入） -->
-        <section class="scale-section">
-            <div class="section-head">
-                <h2 class="section-title"><span class="title-icon"><i class="fas fa-expand"></i></span>宇宙尺度之旅</h2>
-                <p class="section-subtitle">拖动滑块，从地球出发，感受宇宙到底有多大</p>
-            </div>
-            <div class="scale-card" v-reveal>
-                <div class="scale-stage">
-                    <div class="scale-object" :class="stages[scaleIdx].cls" :style="{ width: stages[scaleIdx].w + 'px', height: stages[scaleIdx].w + 'px' }"></div>
-                </div>
-                <div class="scale-info">
-                    <div class="scale-name">{{ stages[scaleIdx].name }}</div>
-                    <div class="scale-size">{{ stages[scaleIdx].size }}</div>
-                    <p class="scale-desc">{{ stages[scaleIdx].desc }}</p>
-                </div>
-                <div class="scale-controls">
-                    <button class="scale-btn" @click="scaleIdx = Math.max(0, scaleIdx - 1)"><i class="fas fa-minus"></i></button>
-                    <input type="range" class="scale-slider" min="0" max="7" step="1" v-model.number="scaleIdx">
-                    <button class="scale-btn" @click="scaleIdx = Math.min(7, scaleIdx + 1)"><i class="fas fa-plus"></i></button>
-                </div>
-                <div class="scale-labels">
-                    <span v-for="s in stages" :key="s.name">{{ s.name }}</span>
-                </div>
-            </div>
-        </section>
-
-        <!-- 天文书籍推荐（原首页区块移入） -->
+        <VideoSection topic="constellation" title="星座科普视频" />
         <BookSection topic="constellations" />
-
-        <VideoSection topic="constellation" title="星座与星空科普视频" />
     </div>
 </template>
 
 <style scoped>
-.cons-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.6rem; }
-.cons-card { background: var(--bg-card); border-radius: var(--radius-md); overflow: hidden; border: 1px solid rgba(159,212,248,0.2); text-decoration: none; color: inherit; transition: all 0.35s ease; }
-.cons-card:hover { transform: translateY(-6px); border-color: var(--color-primary); box-shadow: var(--shadow-glow-primary); }
-.cons-img img { width: 100%; height: 170px; object-fit: cover; }
-.cons-body { padding: 1.2rem 1.3rem 1.4rem; }
-.cons-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.5rem; }
-.cons-head h3 { font-family: var(--font-title); color: var(--color-gold); font-size: 1.15rem; }
-.cons-head .latin { color: var(--color-text-muted); font-size: 0.85rem; font-style: italic; }
-.cons-body p { color: var(--color-text-secondary); font-size: 0.85rem; line-height: 1.7; margin-bottom: 0.9rem; }
-.cons-meta { display: flex; gap: 1.2rem; color: var(--color-text-muted); font-size: 0.8rem; flex-wrap: wrap; }
-.cons-meta i { color: var(--color-cyan); margin-right: 0.3rem; }
+/* ===================== 季节切换 ===================== */
+.season-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.7rem;
+    margin: 0.6rem 0 0.9rem;
+}
+
+.season-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1.15rem;
+    border-radius: 50px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.86rem;
+    letter-spacing: 0.04em;
+    color: var(--color-text-secondary);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(var(--s-rgb), 0.3);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.season-tab i { color: var(--s-color); }
+
+.season-tab:hover {
+    color: #fff;
+    border-color: rgba(var(--s-rgb), 0.7);
+    transform: translateY(-2px);
+}
+
+.season-tab.active {
+    color: #0a0d18;
+    font-weight: 600;
+    background: linear-gradient(135deg, rgba(var(--s-rgb), 0.95), rgba(var(--s-rgb), 0.7));
+    border-color: transparent;
+    box-shadow: 0 8px 24px rgba(var(--s-rgb), 0.35);
+}
+
+.season-tab.active i { color: #0a0d18; }
+
+.tab-now {
+    font-size: 0.62rem;
+    padding: 0.05rem 0.35rem;
+    border-radius: 50px;
+    background: rgba(0, 0, 0, 0.35);
+    color: inherit;
+    letter-spacing: 0.05em;
+}
+
+.season-hint {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-bottom: 2rem;
+    line-height: 1.8;
+}
+
+.season-hint b { color: var(--color-gold); }
+.season-hint i { color: var(--color-cyan); margin-right: 0.3rem; }
+
+/* ===================== 星座卡片 ===================== */
+.cons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    perspective: 1200px;
+}
+
+.cons-card {
+    position: relative;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    border: 1px solid rgba(var(--c-rgb), 0.28);
+    overflow: hidden;
+    transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transform-style: preserve-3d;
+    transition: transform 0.25s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    will-change: transform;
+}
+
+.cons-card:hover {
+    border-color: rgba(var(--c-rgb), 0.8);
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.5), 0 0 34px rgba(var(--c-rgb), 0.22);
+}
+
+.cons-img {
+    position: relative;
+    height: 178px;
+    overflow: hidden;
+    background: #060a14;
+}
+
+.cons-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.6s ease, filter 0.4s ease;
+    filter: brightness(0.72) saturate(0.9);
+}
+
+.cons-card:hover .cons-img img {
+    transform: scale(1.07);
+    filter: brightness(0.55) saturate(1.05);
+}
+
+/* 底部渐变，保证文字可读 */
+.cons-img::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(4, 7, 14, 0.15) 0%, rgba(4, 7, 14, 0.55) 55%, rgba(4, 7, 14, 0.92) 100%);
+    pointer-events: none;
+}
+
+/* 顶部角标 */
+.cons-badges {
+    position: absolute;
+    top: 0.7rem;
+    left: 0.7rem;
+    right: 0.7rem;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.cons-season {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.16rem 0.6rem;
+    border-radius: 50px;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    color: var(--c-color);
+    background: rgba(6, 10, 20, 0.72);
+    border: 1px solid color-mix(in srgb, var(--c-color) 62%, transparent);
+    backdrop-filter: blur(6px);
+}
+
+.cons-now {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.16rem 0.55rem;
+    border-radius: 50px;
+    font-size: 0.68rem;
+    color: #1a1206;
+    font-weight: 600;
+    background: linear-gradient(135deg, #ffd98a, #f0a860);
+    box-shadow: 0 0 14px rgba(240, 168, 96, 0.5);
+    animation: nowPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes nowPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(240, 168, 96, 0.35); }
+    50% { box-shadow: 0 0 20px rgba(240, 168, 96, 0.75); }
+}
+
+.cons-view {
+    position: absolute;
+    left: 0.7rem;
+    bottom: 0.55rem;
+    z-index: 4;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    color: rgba(226, 236, 255, 0.9);
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
+}
+
+.cons-view i { color: var(--c-color); margin-right: 0.25rem; }
+
+/* 真实连线：逐段描绘 */
+.cons-lines {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.cons-lines .seg {
+    stroke: rgba(226, 240, 255, 0.95);
+    stroke-width: 1.1;
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    filter: drop-shadow(0 0 4px rgba(140, 220, 255, 0.9));
+    transition: stroke-dashoffset 0.55s ease;
+}
+
+.cons-card:hover .cons-lines .seg {
+    stroke-dashoffset: 0;
+}
+
+.cons-lines .star {
+    fill: #fff;
+    opacity: 0;
+    filter: drop-shadow(0 0 5px rgba(170, 225, 255, 0.95));
+    transition: opacity 0.4s ease;
+}
+
+.cons-card:hover .cons-lines .star {
+    opacity: 1;
+}
+
+/* 拉丁名水印 */
+.cons-watermark {
+    position: absolute;
+    right: 0.7rem;
+    bottom: 0.5rem;
+    z-index: 4;
+    font-family: var(--font-title);
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(var(--c-rgb), 0.85);
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+}
+
+.cons-card:hover .cons-watermark {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 卡片正文 */
+.cons-body { padding: 1.05rem 1.15rem 1.2rem; }
+
+.cons-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55rem;
+    margin-bottom: 0.5rem;
+}
+
+.cons-head h3 {
+    font-family: var(--font-title);
+    font-size: 1.06rem;
+    color: var(--color-gold);
+}
+
+.cons-head .latin {
+    font-size: 0.72rem;
+    color: var(--c-color);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.85;
+}
+
+.cons-body p {
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.75;
+    margin-bottom: 0.8rem;
+}
+
+.cons-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1rem;
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+}
+
+.cons-meta i { color: var(--c-color); margin-right: 0.25rem; }
+
+@media (max-width: 640px) {
+    .cons-grid { perspective: none; }
+    .cons-card { transform: none !important; }
+}
 </style>

@@ -13,14 +13,14 @@ const check = (n, c, e) => {
 const PAGES = [
     ['/solar-system', '太阳系', 3],
     ['/encyclopedia', '天文百科', 3],
-    ['/constellations', '四季星座', 2],
+    ['/constellations', '四季星座', 3],
     ['/gallery', '星空图集', 2],
     ['/timeline', '宇宙时间线', 2],
     ['/news', '宇宙新闻', 2],
     ['/community', '互动社区', 2],
     ['/credits', '素材来源与版权说明', 2],
     ['/deep-space', '深空天体', 2],
-    ['/explore', '探索工具', 1],
+    ['/explore', '探索工具', 3],
     ['/download', '系统部署说明', 2]
 ];
 
@@ -31,7 +31,7 @@ const PAGES = [
     const errs = [];
     p.on('pageerror', e => errs.push(e.message));
 
-    await p.goto(BASE + '/login', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await p.type('input[autocomplete="username"]', 'admin');
     await p.type('input[autocomplete="current-password"]', 'admin123');
     await p.click('button[type="submit"]');
@@ -39,7 +39,7 @@ const PAGES = [
 
     console.log('=== 各页面页头 ===');
     for (const [url, title, statCount] of PAGES) {
-        await p.goto(BASE + url, { waitUntil: 'networkidle2' });
+        await p.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 45000 });
         await sleep(1300);
         const info = await p.evaluate(() => {
             const h = document.querySelector('.page-header.ph');
@@ -63,7 +63,7 @@ const PAGES = [
     }
 
     console.log('\n=== 后台页（含动态用户名）===');
-    await p.goto(BASE + '/admin', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/admin', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1800);
     const admin = await p.evaluate(() => ({
         has: !!document.querySelector('.page-header.ph'),
@@ -75,7 +75,7 @@ const PAGES = [
     check('/admin 标题', admin.title === '后台管理面板', admin.title);
 
     console.log('\n=== 首页不应有页头组件 ===');
-    await p.goto(BASE + '/', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1500);
     check('首页无 .page-header.ph', await p.evaluate(() => document.querySelectorAll('.page-header.ph').length === 0));
 
@@ -83,7 +83,7 @@ const PAGES = [
 
     // 截图（新闻页页头 + 百科页页头）
     for (const [url, name] of [['/news', 'header-news'], ['/encyclopedia', 'header-encyclopedia']]) {
-        await p.goto(BASE + url, { waitUntil: 'networkidle2' });
+        await p.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 45000 });
         await sleep(1600);
         await p.screenshot({ path: 'F:/天文科普/shots/' + name + '.png' });
     }

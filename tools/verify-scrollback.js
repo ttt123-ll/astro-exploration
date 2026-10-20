@@ -15,14 +15,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const p = await b.newPage();
     await p.setViewport({ width: 1440, height: 900 });
 
-    await p.goto(BASE + '/login', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await p.type('input[autocomplete="username"]', 'admin');
     await p.type('input[autocomplete="current-password"]', 'admin123');
     await p.click('button[type="submit"]');
     await sleep(2500);
 
     console.log('\n=== 场景 1：在首页滚动后离开，再返回 ===');
-    await p.goto(BASE + '/', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(2000);
     // 记录页面可滚动高度，选一个靠下的位置
     const info = await p.evaluate(() => ({
@@ -53,7 +53,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     check('回到首页后恢复了原滚动位置', Math.abs(after.y - before) < 80, { before, after: after.y });
 
     console.log('\n=== 场景 2：从首页顶部离开，返回仍应在顶部 ===');
-    await p.goto(BASE + '/', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1800);
     await p.evaluate(() => window.scrollTo(0, 0));
     await sleep(600);
@@ -71,7 +71,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     check('首页顶部离开 → 返回也在顶部', topAfter < 60, topAfter);
 
     console.log('\n=== 场景 3：普通页面跳转仍从顶部开始 ===');
-    await p.goto(BASE + '/gallery', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/gallery', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1200);
     await p.evaluate(() => window.scrollTo(0, 800));
     await sleep(600);

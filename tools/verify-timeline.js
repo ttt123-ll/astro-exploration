@@ -14,14 +14,14 @@ const check = (n, c, e) => {
     const p = await b.newPage();
     await p.setViewport({ width: 1440, height: 900 });
 
-    await p.goto(BASE + '/login', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await p.type('input[autocomplete="username"]', 'admin');
     await p.type('input[autocomplete="current-password"]', 'admin123');
     await p.click('button[type="submit"]');
     await new Promise(r => setTimeout(r, 2500));
 
     console.log('\n=== 首页 ===');
-    await p.goto(BASE + '/', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 2200));
     const home = await p.evaluate(() => ({
         strip: document.querySelectorAll('.tl-card').length,
@@ -33,7 +33,7 @@ const check = (n, c, e) => {
     console.log('    首页剩余区块:', home.sections.join(', '));
 
     console.log('\n=== 宇宙时间线页 ===');
-    await p.goto(BASE + '/timeline', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/timeline', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 2200));
     const tl = await p.evaluate(() => {
         const strip = document.querySelector('.timeline-strip');
@@ -68,7 +68,7 @@ const check = (n, c, e) => {
     const errs = [];
     p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
     p.on('pageerror', e => errs.push(String(e.message)));
-    await p.reload({ waitUntil: 'networkidle2' });
+    await p.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 1500));
     check('时间线页无 JS 错误', errs.length === 0, errs.slice(0, 2));
 

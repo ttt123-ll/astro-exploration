@@ -17,7 +17,7 @@ const check = (n, c, e) => {
     const errs = [];
     p.on('pageerror', e => errs.push(e.message));
 
-    await p.goto(BASE + '/login', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await p.type('input[autocomplete="username"]', 'admin');
     await p.type('input[autocomplete="current-password"]', 'admin123');
     await p.click('button[type="submit"]');
@@ -25,7 +25,7 @@ const check = (n, c, e) => {
 
     // ===== 百科：分类卡图标 + 渐变 =====
     console.log('=== 百科分类切换 ===');
-    await p.goto(BASE + '/encyclopedia', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/encyclopedia', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1500);
     const tabs = await p.evaluate(() => {
         const list = Array.from(document.querySelectorAll('.enc-tab'));
@@ -48,7 +48,7 @@ const check = (n, c, e) => {
 
     // ===== 时间线：进度标尺 + 纪元色带 =====
     console.log('\n=== 时间线进度标尺与纪元色带 ===');
-    await p.goto(BASE + '/timeline', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/timeline', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1500);
     const ruler = await p.evaluate(() => ({
         exists: !!document.querySelector('.tl-ruler'),
@@ -80,7 +80,7 @@ const check = (n, c, e) => {
 
     // ===== 书封 =====
     console.log('\n=== 排版式书封 ===');
-    await p.goto(BASE + '/community', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/community', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1600);
     await p.evaluate(() => document.querySelector('.book-section')?.scrollIntoView({ block: 'center' }));
     await sleep(700);
@@ -110,7 +110,7 @@ const check = (n, c, e) => {
         ['/news', 'deco-nebula'], ['/credits', 'deco-grid']
     ];
     for (const [url, cls] of decos) {
-        await p.goto(BASE + url, { waitUntil: 'networkidle2' });
+        await p.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 45000 });
         await sleep(1200);
         const ok = await p.evaluate((c) => !!document.querySelector('.ph-deco.' + c), cls);
         check(url + ' 有 ' + cls + ' 装饰', ok);
@@ -120,7 +120,7 @@ const check = (n, c, e) => {
 
     // 截图
     for (const [url, name] of [['/encyclopedia', 'c-encyclopedia'], ['/timeline', 'c-timeline'], ['/community', 'c-books']]) {
-        await p.goto(BASE + url, { waitUntil: 'networkidle2' });
+        await p.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 45000 });
         await sleep(1500);
         if (name === 'c-books') await p.evaluate(() => document.querySelector('.book-section')?.scrollIntoView({ block: 'center' }));
         if (name === 'c-timeline') await p.evaluate(() => document.getElementById('tl-full')?.scrollIntoView({ block: 'start' }));

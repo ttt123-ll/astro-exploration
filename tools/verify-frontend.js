@@ -15,7 +15,7 @@ const check = (n, c, e) => {
     await p.setViewport({ width: 1440, height: 900 });
 
     console.log('\n=== 1. 游客访问 ===');
-    await p.goto(BASE + '/', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await p.waitForFunction('document.querySelector(".hero-news, .stats-strip") !== null', { timeout: 15000 });
     check('游客可看首页（不被强制跳登录）', p.url() === BASE + '/', p.url());
     check('首页有导航栏', await p.evaluate(() => !!document.querySelector('.navbar')));
@@ -30,18 +30,19 @@ const check = (n, c, e) => {
         ['/encyclopedia', '.enc-tabs', '天文百科'],
         ['/community', '.comm-tabs', '互动社区']
     ]) {
-        await p.goto(BASE + path, { waitUntil: 'networkidle2' });
+        await p.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        await new Promise(r => setTimeout(r, 1400));
         const ok = await p.evaluate(s => !!document.querySelector(s), sel);
         check('游客可访问 ' + name, ok && p.url().includes(path), { url: p.url(), found: ok });
     }
 
     console.log('\n=== 2. 受控页面 ===');
-    await p.goto(BASE + '/admin', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/admin', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 800));
     check('游客访问 /admin 被跳到登录页', p.url().includes('/login'), p.url());
 
     console.log('\n=== 3. 登录 ===');
-    await p.goto(BASE + '/login', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await p.waitForSelector('input[autocomplete="username"]', { timeout: 10000 });
     await p.type('input[autocomplete="username"]', 'admin');
     await p.type('input[autocomplete="current-password"]', 'admin123');
@@ -60,10 +61,10 @@ const check = (n, c, e) => {
     check('登录后出现后台管理入口', nav2.includes('后台管理'), nav2.slice(-40));
 
     console.log('\n=== 4. 登录态持久 ===');
-    await p.goto(BASE + '/admin', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/admin', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 1200));
     check('登录后可进入后台', p.url().includes('/admin'), p.url());
-    await p.reload({ waitUntil: 'networkidle2' });
+    await p.reload({ waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 1200));
     check('刷新后仍保持登录（Cookie 恢复会话）', p.url().includes('/admin'), p.url());
 
@@ -76,13 +77,13 @@ const check = (n, c, e) => {
     await new Promise(r => setTimeout(r, 2000));
     const after = await p.cookies();
     check('退出后 Cookie 被清除', !after.find(c => c.name === 'astro_token' && c.value));
-    await p.goto(BASE + '/admin', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/admin', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 800));
     check('退出后访问后台再次跳登录', p.url().includes('/login'), p.url());
 
     console.log('\n=== 6. 新功能：天文百科 / 互动社区 / 新闻搜索 ===');
     // 天文百科：切换 tab
-    await p.goto(BASE + '/encyclopedia', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/encyclopedia', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 1200));
     const encTabs = await p.evaluate(() => document.querySelectorAll('.enc-tabs .enc-tab').length);
     check('天文百科含 2 个分类', encTabs === 2, encTabs);
@@ -99,7 +100,7 @@ const check = (n, c, e) => {
     check('黑洞分类渲染卡片', encBh.cards >= 4, encBh.cards);
 
     // 互动社区：tab + 排行榜
-    await p.goto(BASE + '/community', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/community', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 1500));
     const comm = await p.evaluate(() => ({
         tabs: document.querySelectorAll('.comm-tabs .comm-tab').length,
@@ -124,7 +125,7 @@ const check = (n, c, e) => {
     check('切换到留言板 tab', msgVisible === true);
 
     // 新闻搜索 + 搜索记录
-    await p.goto(BASE + '/news', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/news', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 1500));
     const beforeCount = await p.evaluate(() => document.querySelectorAll('.news-card, .news-head').length);
     await p.type('.search-input', '黑洞');
@@ -160,7 +161,7 @@ const check = (n, c, e) => {
     const errors = [];
     p.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
     p.on('pageerror', e => errors.push(String(e.message)));
-    await p.goto(BASE + '/', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await new Promise(r => setTimeout(r, 2000));
     check('首页无 JS 控制台错误', errors.length === 0, errors.slice(0, 3));
 
