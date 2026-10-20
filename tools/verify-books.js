@@ -30,7 +30,7 @@ const PAGES = [
     const p = await b.newPage();
     await p.setViewport({ width: 1440, height: 900 });
 
-    await p.goto(BASE + '/login', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await p.type('input[autocomplete="username"]', 'admin');
     await p.type('input[autocomplete="current-password"]', 'admin123');
     await p.click('button[type="submit"]');
@@ -38,7 +38,7 @@ const PAGES = [
 
     console.log('=== 各页面主题书单 ===');
     for (const [url, title] of PAGES) {
-        await p.goto(BASE + url, { waitUntil: 'networkidle2' });
+        await p.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 45000 });
         await sleep(1300);
         const info = await p.evaluate(() => {
             const sec = document.querySelector('.book-section');
@@ -58,7 +58,7 @@ const PAGES = [
     }
 
     console.log('\n=== 首页不应有书单 ===');
-    await p.goto(BASE + '/', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1800);
     check('首页无书单', await p.evaluate(() => document.querySelectorAll('.book-section').length === 0));
 
@@ -68,14 +68,14 @@ const PAGES = [
         ['/detail/star/yellow-dwarf', '延伸阅读 · 恒星、星系与黑洞'],
         ['/detail/constellation/orion', '延伸阅读 · 观星与星座']
     ]) {
-        await p.goto(BASE + url, { waitUntil: 'networkidle2' });
+        await p.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 45000 });
         await sleep(1200);
         const t = await p.evaluate(() => (document.querySelector('.book-section .section-title')?.textContent || '').trim());
         check(url + ' 书单正确', t === expect, { got: t, want: expect });
     }
 
     // 横向滚动交互
-    await p.goto(BASE + '/community', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/community', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1500);
     const hasArrow = await p.evaluate(() => !!document.querySelector('.book-section .books-arrow.next'));
     const s0 = await p.evaluate(() => document.querySelector('.book-section .books-track')?.scrollLeft || 0);

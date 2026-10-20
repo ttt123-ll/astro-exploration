@@ -29,14 +29,14 @@ const SHOTS = [
     await p.setViewport({ width: W, height: H, deviceScaleFactor: 1 });
 
     // 登录管理员，让页头状态完整
-    await p.goto(BASE + '/login', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await p.type('input[autocomplete="username"]', 'admin');
     await p.type('input[autocomplete="current-password"]', 'admin123');
     await p.click('button[type="submit"]');
     await sleep(2600);
 
     for (const [name, url, scroll] of SHOTS) {
-        await p.goto(BASE + url, { waitUntil: 'networkidle2' });
+        await p.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 45000 });
         await sleep(2200);
         if (scroll) await p.evaluate(scroll);
         await sleep(900);

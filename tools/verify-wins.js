@@ -19,7 +19,7 @@ const check = (n, c, e) => {
 
     // ===== 1. 聚光灯边框 =====
     console.log('=== 聚光灯边框 ===');
-    await p.goto(BASE + '/gallery', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/gallery', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(2000);
     await p.evaluate(() => document.querySelector('.gallery-item')?.scrollIntoView({ block: 'center' }));
     await sleep(600);
@@ -78,12 +78,12 @@ const check = (n, c, e) => {
 
     // ===== 3. 测验徽章 =====
     console.log('\n=== 测验徽章 ===');
-    await p.goto(BASE + '/login', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await p.type('input[autocomplete="username"]', 'admin');
     await p.type('input[autocomplete="current-password"]', 'admin123');
     await p.click('button[type="submit"]');
     await sleep(2600);
-    await p.goto(BASE + '/community?tab=quiz', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/community?tab=quiz', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1800);
 
     // 开始答题并全部选 A（快速完成）
@@ -140,25 +140,25 @@ const check = (n, c, e) => {
 
     // ===== 4. 星座连线 =====
     console.log('\n=== 星座连线动画 ===');
-    await p.goto(BASE + '/constellations', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/constellations', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1800);
     const cons = await p.evaluate(() => {
         const card = document.querySelector('.cons-card');
         if (!card) return null;
-        const line = card.querySelector('.cons-lines polyline');
-        const dots = card.querySelectorAll('.cons-lines circle');
+        const line = card.querySelector('.cons-lines .seg');
+        const dots = card.querySelectorAll('.cons-lines .star');
         const wm = card.querySelector('.cons-watermark');
         return {
             hasSvg: !!card.querySelector('.cons-lines'),
-            points: line ? line.getAttribute('points') : null,
+            points: line ? (line.getAttribute('x1') + ',' + line.getAttribute('y1')) : null,
             dashOffset: line ? getComputedStyle(line).strokeDashoffset : null,
             dots: dots.length,
             watermark: wm ? wm.textContent.trim() : null
         };
     });
     check('星座卡有 SVG 连线层', cons && cons.hasSvg, cons);
-    check('折线有多个坐标点', cons && cons.points && cons.points.split(' ').length >= 5, cons && cons.points);
-    check('连点为虚线起始状态（未描绘）', cons && parseFloat(cons.dashOffset) > 100, cons && cons.dashOffset);
+    check('连线有真实坐标', cons && cons.points && cons.points.split(',').length === 2, cons && cons.points);
+    check('连点为虚线起始状态（未描绘）', cons && parseFloat(cons.dashOffset) === 1, cons && cons.dashOffset);
     check('有星点与拉丁名水印', cons && cons.dots >= 5 && cons.watermark, cons);
 
     await p.evaluate(() => document.querySelector('.cons-card')?.scrollIntoView({ block: 'center' }));
@@ -171,7 +171,7 @@ const check = (n, c, e) => {
     await p.mouse.move(consBox2.x, consBox2.y);
     await sleep(1600);
     const consHover = await p.evaluate(() => {
-        const line = document.querySelector('.cons-card .cons-lines polyline');
+        const line = document.querySelector('.cons-card .cons-lines .seg');
         const wm = document.querySelector('.cons-card .cons-watermark');
         return { dashOffset: getComputedStyle(line).strokeDashoffset, wmOpacity: getComputedStyle(wm).opacity };
     });

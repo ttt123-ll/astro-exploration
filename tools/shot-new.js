@@ -8,7 +8,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:3000';
     const p = await b.newPage();
     await p.setViewport({ width: 1440, height: 900 });
 
-    await p.goto(BASE + '/login', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/login', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await p.type('input[autocomplete="username"]', 'admin');
     await p.type('input[autocomplete="current-password"]', 'admin123');
     await p.click('button[type="submit"]');
@@ -22,7 +22,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:3000';
         ['/news', 'new-news']
     ];
     for (const [url, name] of shots) {
-        await p.goto(BASE + url, { waitUntil: 'networkidle2' });
+        await p.goto(BASE + url, { waitUntil: 'domcontentloaded', timeout: 45000 });
         await new Promise(r => setTimeout(r, 2200));
         await p.screenshot({ path: 'F:\\天文科普\\shots\\' + name + '.png' });
         console.log('已截图:', name);

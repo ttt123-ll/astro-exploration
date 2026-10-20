@@ -28,7 +28,7 @@ const check = (n, c, e) => {
     p.on('pageerror', e => errs.push(e.message));
 
     console.log('\n=== NEO 观察页 ===');
-    await p.goto(BASE + '/neo', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/neo', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(2200);
     const page = await p.evaluate(() => {
         const hero = document.querySelector('.neo-hero');
@@ -63,7 +63,7 @@ const check = (n, c, e) => {
 
     // ===== 3D 飞掠 =====
     console.log('\n=== 3D 小行星带 / 标签 / 点击飞掠 ===');
-    await p.goto(BASE + '/planet-show', { waitUntil: 'networkidle2' });
+    await p.goto(BASE + '/planet-show', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(3000);
     // 切到 3D 遨游模式
     const switched = await p.evaluate(() => {
