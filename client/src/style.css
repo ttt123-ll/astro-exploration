@@ -5146,3 +5146,169 @@ a, button, .gallery-item, .feature-card, .planet-card, .type-card, .cons-card, .
         bottom: 0.9rem;
     }
 }
+
+/* ==================================================================
+   各页面细节（批次 C）
+   ================================================================== */
+
+/* —— 时间线：年代进度标尺 —— */
+.tl-ruler {
+    max-width: 900px;
+    margin: 0.4rem auto 1.6rem;
+    padding: 0 0.2rem;
+}
+
+.tl-ruler-track {
+    position: relative;
+    height: 6px;
+    border-radius: 4px;
+    background: rgba(159, 212, 248, 0.12);
+    border: 1px solid rgba(159, 212, 248, 0.18);
+    overflow: visible;
+}
+
+.tl-ruler-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #d8e0f4, #6ea4e8 34%, #9d8cf0 66%, #a78bfa);
+    box-shadow: 0 0 14px rgba(157, 140, 240, 0.65);
+    transition: width 0.15s linear;
+}
+
+.tl-ruler-head {
+    position: absolute;
+    top: 50%;
+    width: 14px; height: 14px;
+    margin: -7px 0 0 -7px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, #9d8cf0 60%, transparent 72%);
+    box-shadow: 0 0 14px rgba(216, 224, 244, 0.95);
+    transition: left 0.15s linear;
+}
+
+.tl-ruler-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.55rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+}
+
+/* —— 时间线：按纪元给卡片配色带 —— */
+.u-event {
+    --era-color: #9d8cf0;
+}
+
+.u-event.era-origin { --era-color: #f0a060; }
+.u-event.era-galaxy { --era-color: #9d8cf0; }
+.u-event.era-solar { --era-color: #6ea4e8; }
+.u-event.era-life { --era-color: #6ec8a8; }
+.u-event.era-future { --era-color: #c084fc; }
+
+.u-event-card {
+    border-left: 3px solid var(--era-color);
+    background: linear-gradient(100deg, color-mix(in srgb, var(--era-color) 12%, transparent), var(--bg-card) 42%);
+}
+
+.u-event-card:hover {
+    border-color: var(--era-color);
+    border-left-color: var(--era-color);
+    box-shadow: 0 12px 34px color-mix(in srgb, var(--era-color) 30%, transparent);
+}
+
+.u-event .u-dot {
+    background: var(--era-color);
+    box-shadow: 0 0 14px var(--era-color);
+}
+
+.u-event .u-tag {
+    border: 1px solid color-mix(in srgb, var(--era-color) 55%, transparent);
+    color: var(--era-color);
+    background: color-mix(in srgb, var(--era-color) 14%, transparent);
+}
+
+/* —— 百科：分类卡图标（已在组件内定义，这里补充悬停光晕） —— */
+.enc-tab:hover .enc-tab-icon {
+    box-shadow: 0 0 18px color-mix(in srgb, var(--tab-color, #9d8cf0) 55%, transparent);
+}
+
+/* ==================================================================
+   登录 / 注册：星云背景 + 玻璃拟态卡片（批次 D）
+   ================================================================== */
+
+.auth-wrap {
+    position: relative;
+}
+
+.auth-nebula {
+    position: absolute;
+    inset: -90px -140px;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: 50%;
+}
+
+.an-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(46px);
+    opacity: 0.6;
+    animation: anDrift 18s ease-in-out infinite alternate;
+}
+
+.an-blob.b1 {
+    width: 380px; height: 380px;
+    left: -60px; top: -40px;
+    background: radial-gradient(circle, rgba(157, 140, 240, 0.55), transparent 68%);
+}
+
+.an-blob.b2 {
+    width: 320px; height: 320px;
+    right: -40px; top: 30%;
+    background: radial-gradient(circle, rgba(110, 164, 232, 0.5), transparent 68%);
+    animation-delay: -6s;
+}
+
+.an-blob.b3 {
+    width: 280px; height: 280px;
+    left: 34%; bottom: -80px;
+    background: radial-gradient(circle, rgba(110, 200, 168, 0.4), transparent 68%);
+    animation-delay: -11s;
+}
+
+@keyframes anDrift {
+    from { transform: translate(0, 0) scale(1); }
+    to { transform: translate(22px, -18px) scale(1.12); }
+}
+
+.auth-card {
+    position: relative;
+    z-index: 1;
+    background: rgba(10, 13, 26, 0.55);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    border: 1px solid rgba(167, 139, 250, 0.32);
+    box-shadow:
+        0 30px 90px rgba(0, 0, 0, 0.65),
+        0 0 60px rgba(157, 140, 240, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* 顶部高光边 */
+.auth-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 12%;
+    right: 12%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .auth-nebula { inset: -40px -30px; }
+    .an-blob { filter: blur(34px); }
+}

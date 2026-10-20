@@ -71,7 +71,7 @@ onBeforeUnmount(() => {
 <template>
     <div class="container">
         <PageNav title="星空图集" />
-        <PageHeader kicker="COSMIC GALLERY" title="星空图集" icon="fa-images" :stats="[{ v: String(allItems.length), l: '宇宙影像' }, { v: '6', l: '分类' }]">
+        <PageHeader kicker="COSMIC GALLERY" title="星空图集" icon="fa-images" deco="stars" :stats="[{ v: String(allItems.length), l: '宇宙影像' }, { v: '6', l: '分类' }]">
             精选哈勃、韦伯等望远镜拍摄的精美宇宙照片，共 {{ allItems.length }} 张。点击任意图片放大欣赏。
         </PageHeader>
 

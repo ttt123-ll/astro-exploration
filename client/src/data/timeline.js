@@ -40,7 +40,7 @@ export default [
     "era": "galaxy",
     "future": false,
     "time": "大爆炸后约10亿年",
-    "icon": "fa-sparkles",
+    "icon": "fa-wand-magic-sparkles",
     "title": "第一批星系形成",
     "desc": "恒星聚成星团，星团聚成星系，宇宙第一次有了\"岛宇宙\"的雏形。",
     "detail": "韦伯望远镜近年发现的遥远星系就诞生于这一时期。它们规模较小、形态不规则，随后通过相互并合，逐渐成长为今天的大型星系。"

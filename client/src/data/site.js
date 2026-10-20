@@ -12,7 +12,7 @@ export const navLinks = [
 export const features = [
     { icon: 'fa-sun', cls: 'solar-icon', title: '太阳系行星', path: '/solar-system',
       desc: '太阳系包含水星、金星、地球、火星、木星、土星、天王星、海王星八颗行星，可按物理性质分为类地行星与气态巨行星，还藏着矮行星与小行星带。' },
-    { icon: 'fa-sparkles', cls: 'deep-icon', title: '天文百科', path: '/encyclopedia',
+    { icon: 'fa-wand-magic-sparkles', cls: 'deep-icon', title: '天文百科', path: '/encyclopedia',
       desc: '恒星的一生、星系分类与四类黑洞——一页读懂宇宙中最主要的天体类型与演化历程。' },
     { icon: 'fa-circle-dot', cls: 'explore-icon', title: '星球投影', path: '/planet-show',
       desc: '点击任意天体生成 3D 全息投影，还能一键切换到 3D 遨游太空，亲眼看行星公转。' },
