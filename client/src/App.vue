@@ -9,6 +9,7 @@ import ToastHost from './components/ToastHost.vue';
 import CursorFX from './components/CursorFX.vue';
 import ChatWidget from './components/ChatWidget.vue';
 import PageBackdrop from './components/PageBackdrop.vue';
+import SpotlightFX from './components/SpotlightFX.vue';
 import { useAuth } from './store/auth';
 
 const auth = useAuth();
@@ -31,6 +32,7 @@ auth.fetchMe();
     <BackToTop />
     <ChatWidget />
     <CursorFX />
+    <SpotlightFX />
     <ToastHost />
 </template>
 

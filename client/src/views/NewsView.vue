@@ -238,7 +238,16 @@ onBeforeUnmount(stopAuto);
             </span>
         </div>
 
-        <div v-if="loading && !rows.length" class="news-loading"><i class="fas fa-spinner fa-spin"></i> 正在加载新闻…</div>
+        <!-- 骨架屏：首次加载时占位，避免白屏跳动 -->
+        <div v-if="loading && !rows.length" class="skel-news" aria-hidden="true">
+            <div v-for="i in 4" :key="i" class="skel-card">
+                <div class="skel skel-tag"></div>
+                <div class="skel skel-title"></div>
+                <div class="skel skel-line w100"></div>
+                <div class="skel skel-line w80"></div>
+                <div class="skel skel-line w40"></div>
+            </div>
+        </div>
 
         <!-- 头条 -->
         <article v-if="head" class="news-head" v-reveal>

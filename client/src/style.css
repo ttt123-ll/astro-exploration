@@ -5312,3 +5312,235 @@ a, button, .gallery-item, .feature-card, .planet-card, .type-card, .cons-card, .
     .auth-nebula { inset: -40px -30px; }
     .an-blob { filter: blur(34px); }
 }
+
+/* ==================================================================
+   快赢批次：聚光灯边框 / 骨架屏 / 测验徽章 / 星座连线
+   ================================================================== */
+
+/* —— 1. 聚光灯边框：跟随光标的径向高光描边 —— */
+.news-card,
+.gallery-item,
+.book-card,
+.type-card,
+.bh-card,
+.stat-box,
+.hero-stat,
+.cons-card,
+.u-event-card,
+.planet-card,
+.obj-card {
+    position: relative;
+}
+
+.news-card::before,
+.gallery-item::before,
+.book-card::before,
+.type-card::before,
+.bh-card::before,
+.stat-box::before,
+.hero-stat::before,
+.cons-card::before,
+.u-event-card::before,
+.planet-card::before,
+.obj-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: radial-gradient(
+        260px circle at var(--mx, 50%) var(--my, 50%),
+        rgba(140, 225, 255, 0.95),
+        rgba(157, 140, 240, 0.5) 38%,
+        transparent 66%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.news-card:hover::before,
+.gallery-item:hover::before,
+.book-card:hover::before,
+.type-card:hover::before,
+.bh-card:hover::before,
+.stat-box:hover::before,
+.hero-stat:hover::before,
+.cons-card:hover::before,
+.u-event-card:hover::before,
+.planet-card:hover::before,
+.obj-card:hover::before {
+    opacity: 1;
+}
+
+/* —— 2. 骨架屏 —— */
+.skel {
+    position: relative;
+    overflow: hidden;
+    background: rgba(159, 212, 248, 0.07);
+    border-radius: 10px;
+}
+
+.skel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(206, 216, 240, 0.16), transparent);
+    animation: skelShine 1.5s ease-in-out infinite;
+}
+
+@keyframes skelShine {
+    100% { transform: translateX(100%); }
+}
+
+.skel-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(159, 212, 248, 0.14);
+    border-radius: var(--radius-md);
+    padding: 1.2rem;
+}
+
+.skel-line { height: 12px; margin-bottom: 0.7rem; }
+.skel-line.w40 { width: 40%; }
+.skel-line.w60 { width: 60%; }
+.skel-line.w80 { width: 80%; }
+.skel-line.w100 { width: 100%; }
+.skel-title { height: 22px; width: 72%; margin-bottom: 0.9rem; }
+.skel-tag { height: 22px; width: 84px; border-radius: 50px; margin-bottom: 0.9rem; }
+.skel-img { height: 168px; margin-bottom: 0.9rem; }
+
+.skel-news { display: grid; gap: 1rem; margin-bottom: 2rem; }
+.skel-news .skel-card:first-child { grid-column: 1 / -1; }
+
+.skel-table { display: grid; gap: 0.65rem; padding: 0.6rem 0; }
+.skel-row { display: grid; grid-template-columns: 60px 1.4fr 1fr 1fr 1fr; gap: 1rem; align-items: center; }
+.skel-row .skel-line { margin: 0; }
+
+/* —— 3. 测验段位徽章 —— */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.6rem 1.2rem 0.6rem 0.7rem;
+    border-radius: 50px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--badge-color, #9d8cf0) 26%, transparent), rgba(10, 14, 26, 0.85));
+    border: 1px solid color-mix(in srgb, var(--badge-color, #9d8cf0) 55%, transparent);
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--badge-color, #9d8cf0) 28%, transparent);
+    margin: 0.9rem auto 0.2rem;
+    animation: badgeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.rank-badge-emblem {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1.05rem;
+    color: #fff;
+    background: radial-gradient(circle at 34% 28%, #fff3 0%, var(--badge-color, #9d8cf0) 62%, #0a0e1a 100%);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--badge-color, #9d8cf0) 70%, transparent);
+    position: relative;
+}
+
+.rank-badge-emblem::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    border: 1px dashed color-mix(in srgb, var(--badge-color, #9d8cf0) 65%, transparent);
+    animation: badgeSpin 12s linear infinite;
+}
+
+@keyframes badgeSpin { to { transform: rotate(360deg); } }
+
+.rank-badge-text { display: flex; flex-direction: column; text-align: left; line-height: 1.3; }
+.rank-badge-title {
+    font-family: var(--font-title);
+    font-size: 1rem;
+    color: var(--badge-color, var(--color-gold));
+    letter-spacing: 0.06em;
+}
+.rank-badge-sub { font-size: 0.72rem; color: var(--color-text-muted); letter-spacing: 0.1em; }
+
+@keyframes badgeIn {
+    from { opacity: 0; transform: scale(0.82) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* 排行榜里的段位点 */
+.rank-tier {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-right: 0.4rem;
+    background: var(--tier-color, #9d8cf0);
+    box-shadow: 0 0 8px var(--tier-color, #9d8cf0);
+    vertical-align: middle;
+}
+
+/* —— 4. 星座卡：连线描绘动画 + 拉丁名水印 —— */
+.cons-lines {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.cons-lines polyline {
+    fill: none;
+    stroke: rgba(216, 232, 255, 0.92);
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 420;
+    stroke-dashoffset: 420;
+    filter: drop-shadow(0 0 5px rgba(120, 220, 255, 0.85));
+    transition: stroke-dashoffset 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cons-card:hover .cons-lines polyline {
+    stroke-dashoffset: 0;
+}
+
+.cons-lines circle {
+    fill: #fff;
+    opacity: 0;
+    filter: drop-shadow(0 0 6px rgba(160, 225, 255, 0.95));
+    transition: opacity 0.4s ease;
+}
+
+.cons-card:hover .cons-lines circle {
+    opacity: 1;
+}
+
+.cons-watermark {
+    position: absolute;
+    right: 0.7rem;
+    bottom: 0.5rem;
+    z-index: 2;
+    font-family: var(--font-title);
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(226, 236, 255, 0.55);
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+    pointer-events: none;
+}
+
+.cons-card:hover .cons-watermark {
+    opacity: 1;
+    transform: translateY(0);
+}
