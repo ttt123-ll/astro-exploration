@@ -3,7 +3,6 @@ import { ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import content from '../data/content';
 import VideoSection from '../components/VideoSection.vue';
-import PageNav from '../components/PageNav.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -39,7 +38,6 @@ const BH_STATS = [
 
 <template>
     <div class="container">
-        <PageNav title="天文百科" />
         <div class="page-header">
             <span class="page-kicker">ASTRONOMY ENCYCLOPEDIA</span>
             <h1>天文百科</h1>

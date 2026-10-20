@@ -43,7 +43,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     check('已进入星空图集页', p.url().includes('/gallery'), p.url());
 
     // 点「返回首页」
-    await p.click('.pn-home');
+    await p.evaluate(() => {
+        const a = Array.from(document.querySelectorAll('.nav-links a')).find(x => x.textContent.trim() === '首页');
+        if (a) a.click();
+    });
     await sleep(2200);
     const after = await p.evaluate(() => ({ y: Math.round(window.scrollY), path: location.pathname }));
     check('已回到首页', after.path === '/', after.path);
@@ -59,7 +62,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
         if (a) a.click();
     });
     await sleep(1500);
-    await p.click('.pn-home');
+    await p.evaluate(() => {
+        const a = Array.from(document.querySelectorAll('.nav-links a')).find(x => x.textContent.trim() === '首页');
+        if (a) a.click();
+    });
     await sleep(2000);
     const topAfter = await p.evaluate(() => Math.round(window.scrollY));
     check('首页顶部离开 → 返回也在顶部', topAfter < 60, topAfter);

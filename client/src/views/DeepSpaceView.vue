@@ -1,14 +1,12 @@
 <script setup>
 import content from '../data/content';
 import VideoSection from '../components/VideoSection.vue';
-import PageNav from '../components/PageNav.vue';
 const objects = Object.entries(content.object).map(([k, v]) => ({ key: k, ...v }));
 const telescopes = Object.entries(content.telescope).map(([k, v]) => ({ key: k, ...v }));
 </script>
 
 <template>
     <div class="container">
-        <PageNav title="深空天体" />
         <div class="page-header">
             <span class="page-kicker">DEEP SPACE</span>
             <h1>深空天体</h1>

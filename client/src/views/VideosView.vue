@@ -1,11 +1,9 @@
 <script setup>
 import videos from '../data/videos';
-import PageNav from '../components/PageNav.vue';
 </script>
 
 <template>
     <div class="container">
-        <PageNav title="科普视频" />
         <div class="page-header">
             <span class="page-kicker">EXPLAINER VIDEOS</span>
             <h1>科普讲解视频</h1>

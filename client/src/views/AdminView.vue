@@ -5,7 +5,6 @@ import { useAuth } from '../store/auth';
 import { useUi } from '../store/ui';
 import api from '../api';
 import { fmtDateTime } from '../utils/time';
-import PageNav from '../components/PageNav.vue';
 
 const auth = useAuth();
 const ui = useUi();
@@ -99,7 +98,6 @@ onMounted(load);
 
 <template>
     <div class="container">
-        <PageNav title="后台管理" />
         <div class="page-header">
             <span class="page-kicker">CONTROL CENTER</span>
             <h1>后台管理面板</h1>

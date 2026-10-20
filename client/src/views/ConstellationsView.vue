@@ -4,7 +4,6 @@ import constellations from '../data/constellations';
 import { facts } from '../data/site';
 import books from '../data/books';
 import VideoSection from '../components/VideoSection.vue';
-import PageNav from '../components/PageNav.vue';
 
 const season = ref('all');
 const seasons = ['all', '春季', '夏季', '秋季', '冬季'];
@@ -77,7 +76,6 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="container">
-        <PageNav title="四季星座" />
         <div class="page-header">
             <span class="page-kicker">CONSTELLATIONS</span>
             <h1>四季星座</h1>

@@ -1,14 +1,12 @@
 <script setup>
 import planets from '../data/planets';
 import VideoSection from '../components/VideoSection.vue';
-import PageNav from '../components/PageNav.vue';
 const key = p => (p.englishName || '').toLowerCase();
 const fmt = n => Number(n).toLocaleString('zh-CN');
 </script>
 
 <template>
     <div class="container">
-        <PageNav title="太阳系行星" />
         <div class="page-header">
             <span class="page-kicker">SOLAR SYSTEM</span>
             <h1>太阳系</h1>
