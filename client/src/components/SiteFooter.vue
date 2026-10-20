@@ -50,7 +50,7 @@ const ui = useUi();
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2026 宇宙探索 - 天文科普网站系统 | 毕业设计作品</p>
+                <p>&copy; 2026 宇宙探索 - 天文科普网站系统 | 传智杯参赛作品</p>
                 <p style="color:var(--color-text-muted);font-size:0.78rem;">Vue 3 + Node.js Express + MySQL · 背景视频素材：NASA / ESA 公有领域与维基共享（CC 授权）</p>
             </div>
         </div>
