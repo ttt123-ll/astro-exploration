@@ -1,0 +1,31 @@
+MIT License
+
+Copyright (c) 2026 宇宙探索 · 天文科普网站系统
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## 第三方素材说明
+
+本站天文图片、科普视频等素材来自 NASA、ESA、STScI 等机构的公开资源，
+行星球面贴图来自 SolarSystemScope（CC BY 4.0）。
+各类素材的具体出处、作者与授权条款见站点 `/credits` 页面与
+[`client/src/data/official.js`](client/src/data/official.js)。
+上述素材的版权归原作者所有，本项目仅用于非商业的教育与展示用途。
