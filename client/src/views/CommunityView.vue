@@ -120,6 +120,20 @@ const grade = computed(() => {
     return { l: 'D', c: '新手宇航员，别灰心！从太阳系板块开始探索吧。' };
 });
 
+/* 段位徽章：按正确率评定五个等级 */
+const BADGE_TIERS = [
+    { min: 100, title: '宇宙学者', en: 'COSMIC SCHOLAR', icon: 'fa-crown', color: '#f5d76e' },
+    { min: 90, title: '星系指挥官', en: 'GALAXY COMMANDER', icon: 'fa-medal', color: '#c084fc' },
+    { min: 75, title: '恒星领航员', en: 'STELLAR NAVIGATOR', icon: 'fa-rocket', color: '#6ea4e8' },
+    { min: 60, title: '行星观察员', en: 'PLANET OBSERVER', icon: 'fa-satellite', color: '#6ec8a8' },
+    { min: 0, title: '星际学徒', en: 'STAR CADET', icon: 'fa-user-astronaut', color: '#9d8cf0' }
+];
+const badge = computed(() => BADGE_TIERS.find(t => pct.value >= t.min) || BADGE_TIERS[BADGE_TIERS.length - 1]);
+/* 排行榜正确率前的段位色点 */
+function tierColor(p) {
+    return (BADGE_TIERS.find(t => p >= t.min) || BADGE_TIERS[BADGE_TIERS.length - 1]).color;
+}
+
 /* ============ 留言板 ============ */
 const rows = ref([]);
 const total = ref(0);
@@ -278,6 +292,15 @@ onBeforeUnmount(() => {
                     <div class="grade-inner"><div class="grade-letter">{{ grade.l }}</div><div class="grade-percent">{{ pct }}%</div></div>
                 </div>
                 <h2>{{ grade.l === 'S' ? '恭喜，完美通关！' : '成绩单已生成' }}</h2>
+
+                <!-- 段位徽章：按正确率评定 -->
+                <div class="rank-badge" :style="{ '--badge-color': badge.color }">
+                    <span class="rank-badge-emblem"><i class="fas" :class="badge.icon"></i></span>
+                    <span class="rank-badge-text">
+                        <span class="rank-badge-title">{{ badge.title }}</span>
+                        <span class="rank-badge-sub">{{ badge.en }}</span>
+                    </span>
+                </div>
                 <div class="best-score" v-if="rankNote && rankNote !== 'login'" style="display:inline-flex;">
                     <i class="fas fa-trophy"></i> 成绩已上传 · 全站 {{ rankNote }}
                     <a href="#community-leaderboard" style="color:var(--color-cyan);margin-left:0.4rem;" @click.prevent="goLeaderboard">查看排行榜</a>
@@ -390,7 +413,17 @@ onBeforeUnmount(() => {
             </div>
 
             <div class="sys-card">
-                <table class="sys-table" v-if="lbRows.length">
+                <!-- 骨架屏：首次加载占位 -->
+                <div v-if="loadingLb && !lbRows.length" class="skel-table" aria-hidden="true">
+                    <div v-for="i in 6" :key="i" class="skel-row">
+                        <div class="skel skel-line w60"></div>
+                        <div class="skel skel-line w80"></div>
+                        <div class="skel skel-line w60"></div>
+                        <div class="skel skel-line w40"></div>
+                        <div class="skel skel-line w40"></div>
+                    </div>
+                </div>
+                <table class="sys-table" v-else-if="lbRows.length">
                     <thead>
                         <tr><th>排名</th><th>宇航员</th><th>主题</th><th>正确率</th><th>得分</th><th>用时</th><th>提交时间</th></tr>
                     </thead>
@@ -399,7 +432,7 @@ onBeforeUnmount(() => {
                             <td><span class="rank" :class="'rank-' + (i < 3 ? i + 1 : 'n')">{{ i === 0 ? '👑' : i + 1 }}</span></td>
                             <td class="cell-user"><i class="fas fa-user-astronaut"></i> {{ r.username }}</td>
                             <td>{{ catName(r.category) }}</td>
-                            <td><b class="pct-cell">{{ r.pct }}%</b></td>
+                            <td><b class="pct-cell"><span class="rank-tier" :style="{ '--tier-color': tierColor(r.pct) }"></span>{{ r.pct }}%</b></td>
                             <td>{{ r.correct }} / {{ r.total }}</td>
                             <td>{{ dur(r.duration_sec) }}</td>
                             <td class="cell-time">{{ fmtDateTime(r.created_at) }}</td>
@@ -421,7 +454,7 @@ onBeforeUnmount(() => {
                     <tbody>
                         <tr v-for="r in mine" :key="r.id">
                             <td>{{ catName(r.category) }}</td>
-                            <td><b class="pct-cell">{{ r.pct }}%</b></td>
+                            <td><b class="pct-cell"><span class="rank-tier" :style="{ '--tier-color': tierColor(r.pct) }"></span>{{ r.pct }}%</b></td>
                             <td>{{ r.correct }} / {{ r.total }}</td>
                             <td>{{ dur(r.duration_sec) }}</td>
                             <td class="cell-time">{{ fmtDateTime(r.created_at) }}</td>

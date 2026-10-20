@@ -11,6 +11,22 @@ const seasons = ['all', '春季', '夏季', '秋季', '冬季'];
 const list = computed(() => season.value === 'all' ? constellations : constellations.filter(c => c.season === season.value));
 const img = c => '/assets/images/constellation_' + (c.latinName || '').toLowerCase() + '.jpg';
 
+/* —— 星座连线：按名称散列选一套折线图案，hover 时描绘 —— */
+const LINE_PATTERNS = [
+    [[14, 74], [40, 52], [62, 64], [88, 30], [118, 46], [146, 24]],
+    [[12, 40], [38, 62], [66, 44], [92, 70], [124, 38], [148, 58]],
+    [[20, 66], [46, 40], [74, 58], [100, 26], [128, 48], [150, 32]],
+    [[18, 30], [44, 56], [70, 38], [96, 62], [122, 34], [144, 54]],
+    [[16, 58], [42, 34], [68, 52], [94, 28], [120, 60], [146, 40]]
+];
+function nameSeed(name) {
+    let h = 0;
+    for (const ch of String(name)) h = (h * 31 + ch.codePointAt(0)) % 997;
+    return h;
+}
+const consDots = c => LINE_PATTERNS[nameSeed(c.name) % LINE_PATTERNS.length];
+const consLine = c => consDots(c).map(p => p[0] + ',' + p[1]).join(' ');
+
 /* —— 天文冷知识（原首页区块移入） —— */
 const factIdx = ref(0);
 let factAuto;
@@ -61,7 +77,15 @@ const scaleIdx = ref(0);
 
         <div class="cons-grid">
             <router-link v-for="c in list" :key="c.name" :to="'/detail/constellation/' + c.latinName.toLowerCase()" class="cons-card" v-reveal>
-                <div class="cons-img"><img :src="img(c)" :alt="c.name"></div>
+                <div class="cons-img">
+                    <img :src="img(c)" :alt="c.name">
+                    <!-- 星座连线描绘动画 + 拉丁名水印 -->
+                    <svg class="cons-lines" viewBox="0 0 160 100" preserveAspectRatio="none" aria-hidden="true">
+                        <polyline :points="consLine(c)"></polyline>
+                        <circle v-for="(pt, pi) in consDots(c)" :key="pi" :cx="pt[0]" :cy="pt[1]" r="1.8"></circle>
+                    </svg>
+                    <span class="cons-watermark">{{ c.latinName }}</span>
+                </div>
                 <div class="cons-body">
                     <div class="cons-head"><h3>{{ c.name }}</h3><span class="latin">{{ c.latinName }}</span></div>
                     <p>{{ c.legend.slice(0, 66) }}…</p>
