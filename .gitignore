@@ -1,0 +1,47 @@
+# ---------------- 依赖 ----------------
+node_modules/
+**/node_modules/
+
+# ---------------- 构建产物 ----------------
+client/dist/
+dist/
+*.local
+
+# ---------------- 环境变量（含密钥，切勿提交） ----------------
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ---------------- 日志与临时文件 ----------------
+*.log
+npm-debug.log*
+_t_*.log
+_tmp_*
+tmp/
+temp/
+
+# ---------------- 测试产物 ----------------
+shots/
+coverage/
+
+# ---------------- Docker 离线分发包（体积大，单独分发） ----------------
+docker-dist/
+*.tar
+*.tar.gz
+
+# ---------------- 编辑器 / 系统 ----------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 自动生成的提交记录页面
+git-history.html
