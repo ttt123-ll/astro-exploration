@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import api from '../api';
 import { relTime, clockTime } from '../utils/time';
+import PageNav from '../components/PageNav.vue';
 
 const rows = ref([]);
 const tags = ref([]);
@@ -144,6 +145,7 @@ onBeforeUnmount(stopAuto);
 
 <template>
     <div class="container">
+        <PageNav title="宇宙新闻" />
         <div class="page-header">
             <span class="page-kicker">COSMIC NEWS</span>
             <h1>宇宙新闻</h1>

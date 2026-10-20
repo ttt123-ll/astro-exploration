@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import timeline from '../data/timeline';
 import VideoSection from '../components/VideoSection.vue';
+import PageNav from '../components/PageNav.vue';
 
 const eras = [
     ['all', '全部事件', 'fa-infinity'],
@@ -21,6 +22,7 @@ function toggle(i) { expanded.value[i] = !expanded.value[i]; }
 
 <template>
     <div class="container">
+        <PageNav title="宇宙时间线" />
         <div class="page-header">
             <span class="page-kicker">COSMIC CHRONICLE</span>
             <h1>宇宙时间线</h1>
