@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
+import BookSection from '../components/BookSection.vue';
 
 // 光年换算
 const ly = ref(1);
@@ -46,6 +47,7 @@ const lightTime = computed(() => (dist.value / 299792.458).toFixed(1) + ' 秒');
                 <p class="hint">日地平均距离约 1.5 亿公里，光要走 8 分多钟。</p>
             </div>
         </div>
+        <BookSection topic="explore" />
     </div>
 </template>
 

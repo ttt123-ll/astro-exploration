@@ -2,8 +2,8 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import constellations from '../data/constellations';
 import { facts } from '../data/site';
-import books from '../data/books';
 import VideoSection from '../components/VideoSection.vue';
+import BookSection from '../components/BookSection.vue';
 
 const season = ref('all');
 const seasons = ['all', '春季', '夏季', '秋季', '冬季'];
@@ -30,48 +30,6 @@ const stages = [
 ];
 const scaleIdx = ref(0);
 
-/* —— 天文书籍横向轮播（箭头 / 拖拽 / 滚轮，原首页区块移入） —— */
-const booksRef = ref(null);
-function booksScroll(dir) {
-    const el = booksRef.value;
-    if (!el) return;
-    el.scrollBy({ left: dir * Math.max(250, el.clientWidth * 0.75), behavior: 'smooth' });
-}
-function onBooksWheel(e) {
-    const el = booksRef.value;
-    if (!el) return;
-    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-    const atStart = el.scrollLeft <= 0 && e.deltaY < 0;
-    const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1 && e.deltaY > 0;
-    if (atStart || atEnd) return;
-    e.preventDefault();
-    el.scrollLeft += e.deltaY;
-}
-let bDrag = false, bStartX = 0, bStartLeft = 0;
-function booksDragStart(e) {
-    const el = booksRef.value;
-    if (!el) return;
-    bDrag = true; bStartX = e.pageX; bStartLeft = el.scrollLeft;
-    el.classList.add('dragging');
-}
-function booksDragMove(e) {
-    const el = booksRef.value;
-    if (!bDrag || !el) return;
-    el.scrollLeft = bStartLeft - (e.pageX - bStartX);
-}
-function booksDragEnd() {
-    const el = booksRef.value;
-    if (!el) return;
-    bDrag = false; el.classList.remove('dragging');
-}
-onMounted(() => {
-    const el = booksRef.value;
-    if (el) el.addEventListener('wheel', onBooksWheel, { passive: false });
-});
-onBeforeUnmount(() => {
-    const el = booksRef.value;
-    if (el) el.removeEventListener('wheel', onBooksWheel);
-});
 </script>
 
 <template>
@@ -146,26 +104,7 @@ onBeforeUnmount(() => {
         </section>
 
         <!-- 天文书籍推荐（原首页区块移入） -->
-        <section class="books-strip">
-            <div class="section-head">
-                <h2 class="section-title"><span class="title-icon"><i class="fas fa-book-open"></i></span>天文书籍推荐</h2>
-                <p class="section-subtitle">从入门到进阶，这些经典科普书带你读懂宇宙（可点箭头、拖拽或滚轮左右滑动）</p>
-            </div>
-            <div class="books-wrap">
-                <button class="books-arrow prev" @click="booksScroll(-1)" aria-label="上一本"><i class="fas fa-chevron-left"></i></button>
-                <div class="books-track" ref="booksRef"
-                     @mousedown="booksDragStart" @mousemove="booksDragMove" @mouseup="booksDragEnd" @mouseleave="booksDragEnd">
-                    <div v-for="b in books" :key="b.title" class="book-card" v-reveal>
-                        <div class="book-cover" :style="{ background: 'linear-gradient(160deg,' + b.color + ',#101320)', color: '#fff' }">{{ b.icon }}</div>
-                        <h4>{{ b.title }}</h4>
-                        <div class="book-author">{{ b.author }}</div>
-                        <div class="book-en">{{ b.en }}</div>
-                        <p class="book-intro">{{ b.intro }}</p>
-                    </div>
-                </div>
-                <button class="books-arrow next" @click="booksScroll(1)" aria-label="下一本"><i class="fas fa-chevron-right"></i></button>
-            </div>
-        </section>
+        <BookSection topic="constellations" />
 
         <VideoSection topic="constellation" title="星座与星空科普视频" />
     </div>

@@ -3,6 +3,8 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import content from '../data/content';
 import VideoSection from '../components/VideoSection.vue';
+import BookSection from '../components/BookSection.vue';
+import { GROUP_TOPIC } from '../data/pageBooks';
 
 const route = useRoute();
 const group = computed(() => route.params.group);
@@ -20,6 +22,8 @@ const videoTopic = computed(() => ({
     planet: 'planet', star: 'star', galaxy: 'star', constellation: 'constellation',
     blackhole: 'blackhole', object: 'deepspace', telescope: 'telescope'
 }[group.value] || 'deepspace'));
+// 详情页按所属分组匹配主题书单
+const bookTopic = computed(() => GROUP_TOPIC[group.value] || 'deep');
 </script>
 
 <template>
@@ -52,6 +56,7 @@ const videoTopic = computed(() => ({
             </div>
 
             <VideoSection :topic="videoTopic" title="相关科普视频" />
+            <BookSection :topic="bookTopic" />
         </div>
     </div>
     <div class="container" v-else>

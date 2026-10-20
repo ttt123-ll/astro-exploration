@@ -7,6 +7,7 @@ import { useUi } from '../store/ui';
 import api from '../api';
 import { fmtDateTime } from '../utils/time';
 import PageNav from '../components/PageNav.vue';
+import BookSection from '../components/BookSection.vue';
 
 const auth = useAuth();
 const ui = useUi();
@@ -432,6 +433,7 @@ onBeforeUnmount(() => {
                 </table>
             </div>
         </section>
+        <BookSection topic="community" />
     </div>
 </template>
 

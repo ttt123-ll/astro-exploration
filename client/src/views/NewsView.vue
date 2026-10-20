@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import api from '../api';
 import { relTime, clockTime } from '../utils/time';
 import PageNav from '../components/PageNav.vue';
+import BookSection from '../components/BookSection.vue';
 
 const rows = ref([]);
 const tags = ref([]);
@@ -277,6 +278,7 @@ onBeforeUnmount(stopAuto);
             没有找到匹配的新闻{{ q ? '：试试更换关键词' : '' }}
             <button v-if="hasFilter" class="filter-reset" style="margin-left:0.6rem;" @click="resetAll">清空筛选</button>
         </p>
+        <BookSection topic="news" />
     </div>
 </template>
 

@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import content from '../data/content';
 import VideoSection from '../components/VideoSection.vue';
+import BookSection from '../components/BookSection.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -108,6 +109,7 @@ const BH_STATS = [
 
             <VideoSection topic="blackhole" title="黑洞科普视频" />
         </div>
+        <BookSection topic="encyclopedia" />
     </div>
 </template>
 

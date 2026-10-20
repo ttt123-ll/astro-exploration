@@ -1,6 +1,7 @@
 <script setup>
 import content from '../data/content';
 import VideoSection from '../components/VideoSection.vue';
+import BookSection from '../components/BookSection.vue';
 const objects = Object.entries(content.object).map(([k, v]) => ({ key: k, ...v }));
 const telescopes = Object.entries(content.telescope).map(([k, v]) => ({ key: k, ...v }));
 </script>
@@ -30,6 +31,7 @@ const telescopes = Object.entries(content.telescope).map(([k, v]) => ({ key: k, 
         </div>
 
         <VideoSection topic="deepspace" title="深空与望远镜科普视频" />
+        <BookSection topic="deep" />
     </div>
 </template>
 
