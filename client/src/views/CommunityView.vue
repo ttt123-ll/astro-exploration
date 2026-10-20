@@ -6,7 +6,6 @@ import { useAuth } from '../store/auth';
 import { useUi } from '../store/ui';
 import api from '../api';
 import { fmtDateTime } from '../utils/time';
-import PageNav from '../components/PageNav.vue';
 
 const auth = useAuth();
 const ui = useUi();
@@ -208,7 +207,6 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="container">
-        <PageNav title="互动社区" />
         <div class="page-header">
             <span class="page-kicker">INTERACTIVE COMMUNITY</span>
             <h1>互动社区</h1>

@@ -2,7 +2,6 @@
 import videos from '../data/videos';
 import official from '../data/official';
 import gallery from '../data/gallery';
-import PageNav from '../components/PageNav.vue';
 
 // 图片出处统计
 const creditCount = {};
@@ -62,7 +61,6 @@ const verify = [
 
 <template>
     <div class="container">
-        <PageNav title="素材来源" />
         <div class="page-header">
             <span class="page-kicker">SOURCES & LICENSES</span>
             <h1>素材来源与版权说明</h1>

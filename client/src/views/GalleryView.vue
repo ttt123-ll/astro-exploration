@@ -3,7 +3,6 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import gallery from '../data/gallery';
 import official from '../data/official';
 import VideoSection from '../components/VideoSection.vue';
-import PageNav from '../components/PageNav.vue';
 
 const officialItems = official.map(o => ({
     category: 'official',
@@ -68,7 +67,6 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="container">
-        <PageNav title="星空图集" />
         <div class="page-header">
             <span class="page-kicker">COSMIC GALLERY</span>
             <h1>星空图集</h1>

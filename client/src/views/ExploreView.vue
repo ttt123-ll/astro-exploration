@@ -1,6 +1,5 @@
 <script setup>
 import { ref, computed } from 'vue';
-import PageNav from '../components/PageNav.vue';
 
 // 光年换算
 const ly = ref(1);
@@ -18,7 +17,6 @@ const lightTime = computed(() => (dist.value / 299792.458).toFixed(1) + ' 秒');
 
 <template>
     <div class="container">
-        <PageNav title="探索工具" />
         <div class="page-header">
             <span class="page-kicker">ASTRO TOOLS</span>
             <h1>探索工具</h1>

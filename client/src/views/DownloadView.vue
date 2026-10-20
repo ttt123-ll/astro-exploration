@@ -1,12 +1,10 @@
 <script setup>
 import { useUi } from '../store/ui';
-import PageNav from '../components/PageNav.vue';
 const ui = useUi();
 </script>
 
 <template>
     <div class="container" style="max-width:760px;">
-        <PageNav title="资料下载" />
         <div class="page-header">
             <span class="page-kicker">DEPLOYMENT</span>
             <h1>系统部署说明</h1>
