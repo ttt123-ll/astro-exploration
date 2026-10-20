@@ -49,7 +49,6 @@ const scaleIdx = ref(0);
                 <p class="facts-text">{{ facts[factIdx].t }}</p>
                 <div class="facts-actions">
                     <button class="btn btn-gold" @click="nextFact"><i class="fas fa-shuffle"></i> 换一条</button>
-                    <router-link to="/timeline" class="btn btn-ghost"><i class="fas fa-hourglass-half"></i> 看宇宙编年史</router-link>
                 </div>
             </div>
         </section>
