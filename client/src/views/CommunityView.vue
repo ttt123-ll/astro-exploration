@@ -8,6 +8,7 @@ import api from '../api';
 import { fmtDateTime } from '../utils/time';
 import PageNav from '../components/PageNav.vue';
 import BookSection from '../components/BookSection.vue';
+import PageHeader from '../components/PageHeader.vue';
 
 const auth = useAuth();
 const ui = useUi();
@@ -210,11 +211,7 @@ onBeforeUnmount(() => {
 <template>
     <div class="container">
         <PageNav title="互动社区" />
-        <div class="page-header">
-            <span class="page-kicker">INTERACTIVE COMMUNITY</span>
-            <h1>互动社区</h1>
-            <p>参加天文知识竞赛检验你的宇宙认知，在留言板留下观星足迹，成绩与留言都会实时汇总到下方的星际排行榜。</p>
-        </div>
+        <PageHeader kicker="INTERACTIVE COMMUNITY" title="互动社区" icon="fa-users" :stats="[{ v: String(quiz.length), l: '竞赛题目' }, { v: '15 秒', l: '排行榜刷新' }]" subtitle="参加天文知识竞赛检验你的宇宙认知，在留言板留下观星足迹，成绩与留言都会实时汇总到下方的星际排行榜。" />
 
         <!-- 上方：知识竞赛 / 留言板 -->
         <div class="comm-tabs">

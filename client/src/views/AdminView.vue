@@ -5,6 +5,7 @@ import { useAuth } from '../store/auth';
 import { useUi } from '../store/ui';
 import api from '../api';
 import { fmtDateTime } from '../utils/time';
+import PageHeader from '../components/PageHeader.vue';
 
 const auth = useAuth();
 const ui = useUi();
@@ -98,11 +99,9 @@ onMounted(load);
 
 <template>
     <div class="container">
-        <div class="page-header">
-            <span class="page-kicker">CONTROL CENTER</span>
-            <h1>后台管理面板</h1>
-            <p>欢迎回来，指挥官 <b style="color:var(--color-cyan);">{{ auth.user?.username }}</b>。这里监控着整个空间站的运行状况。</p>
-        </div>
+        <PageHeader kicker="CONTROL CENTER" title="后台管理面板" icon="fa-gauge-high" :stats="[{ v: '5', l: '管理模块' }, { v: '实时', l: '数据监控' }]">
+            欢迎回来，指挥官 <b style="color:var(--color-cyan);">{{ auth.user?.username }}</b>。这里监控着整个空间站的运行状况。
+        </PageHeader>
 
         <div class="admin-stats" v-if="stats">
             <div class="admin-stat"><div class="v">{{ stats.users }}</div><div class="l"><i class="fas fa-users"></i> 注册用户</div></div>

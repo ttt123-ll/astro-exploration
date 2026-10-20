@@ -5,6 +5,7 @@ import official from '../data/official';
 import VideoSection from '../components/VideoSection.vue';
 import PageNav from '../components/PageNav.vue';
 import BookSection from '../components/BookSection.vue';
+import PageHeader from '../components/PageHeader.vue';
 
 const officialItems = official.map(o => ({
     category: 'official',
@@ -70,11 +71,9 @@ onBeforeUnmount(() => {
 <template>
     <div class="container">
         <PageNav title="星空图集" />
-        <div class="page-header">
-            <span class="page-kicker">COSMIC GALLERY</span>
-            <h1>星空图集</h1>
-            <p>精选哈勃、韦伯等望远镜拍摄的精美宇宙照片，共 {{ allItems.length }} 张。点击任意图片放大欣赏。</p>
-        </div>
+        <PageHeader kicker="COSMIC GALLERY" title="星空图集" icon="fa-images" :stats="[{ v: String(allItems.length), l: '宇宙影像' }, { v: '6', l: '分类' }]">
+            精选哈勃、韦伯等望远镜拍摄的精美宇宙照片，共 {{ allItems.length }} 张。点击任意图片放大欣赏。
+        </PageHeader>
 
         <!-- 今日天文图片（原首页区块移入） -->
         <section class="apod">

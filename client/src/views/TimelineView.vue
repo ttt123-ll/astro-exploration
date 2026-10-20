@@ -4,6 +4,7 @@ import timeline from '../data/timeline';
 import VideoSection from '../components/VideoSection.vue';
 import PageNav from '../components/PageNav.vue';
 import BookSection from '../components/BookSection.vue';
+import PageHeader from '../components/PageHeader.vue';
 
 const eras = [
     ['all', '全部事件', 'fa-infinity'],
@@ -24,11 +25,7 @@ function toggle(i) { expanded.value[i] = !expanded.value[i]; }
 <template>
     <div class="container">
         <PageNav title="宇宙时间线" />
-        <div class="page-header">
-            <span class="page-kicker">COSMIC CHRONICLE</span>
-            <h1>宇宙时间线</h1>
-            <p>从138亿年前的大爆炸，到遥远未来的热寂——点击事件可展开更多细节。</p>
-        </div>
+        <PageHeader kicker="COSMIC CHRONICLE" title="宇宙时间线" icon="fa-hourglass-half" :stats="[{ v: String(timeline.length), l: '关键节点' }, { v: '138 亿年', l: '时间跨度' }]" subtitle="从138亿年前的大爆炸，到遥远未来的热寂——点击事件可展开更多细节。" />
 
         <!-- 宇宙编年史：八个关键瞬间（横向滑动） -->
         <section class="timeline-strip">

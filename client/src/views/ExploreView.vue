@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import BookSection from '../components/BookSection.vue';
+import PageHeader from '../components/PageHeader.vue';
 
 // 光年换算
 const ly = ref(1);
@@ -18,11 +19,7 @@ const lightTime = computed(() => (dist.value / 299792.458).toFixed(1) + ' 秒');
 
 <template>
     <div class="container">
-        <div class="page-header">
-            <span class="page-kicker">ASTRO TOOLS</span>
-            <h1>探索工具</h1>
-            <p>把天文数字变成可以动手玩的小工具——换算宇宙的尺度与时间。</p>
-        </div>
+        <PageHeader kicker="ASTRO TOOLS" title="探索工具" icon="fa-calculator" :stats="[{ v: '3', l: '换算工具' }]" subtitle="把天文数字变成可以动手玩的小工具——换算宇宙的尺度与时间。" />
 
         <div class="tool-grid">
             <div class="tool-card" v-reveal>
