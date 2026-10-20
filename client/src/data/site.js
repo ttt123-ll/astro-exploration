@@ -5,6 +5,7 @@ export const navLinks = [
     { label: '四季星座', path: '/constellations' },
     { label: '星空图集', path: '/gallery' },
     { label: '宇宙时间线', path: '/timeline' },
+    { label: '近地天体', path: '/neo' },
     { label: '宇宙新闻', path: '/news' },
     { label: '互动社区', path: '/community' }
 ];

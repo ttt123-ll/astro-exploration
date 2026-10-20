@@ -14,6 +14,7 @@ const routes = [
     { path: '/constellations', name: 'constellations', component: () => import('../views/ConstellationsView.vue'), meta: { title: '四季星座' } },
     { path: '/gallery', name: 'gallery', component: () => import('../views/GalleryView.vue'), meta: { title: '星空图集' } },
     { path: '/timeline', name: 'timeline', component: () => import('../views/TimelineView.vue'), meta: { title: '宇宙时间线' } },
+    { path: '/neo', name: 'neo', component: () => import('../views/NeoView.vue'), meta: { title: '近地天体观察' } },
     { path: '/news', name: 'news', component: () => import('../views/NewsView.vue'), meta: { title: '宇宙新闻' } },
     { path: '/credits', name: 'credits', component: () => import('../views/CreditsView.vue'), meta: { title: '素材来源' } },
     // 互动社区 = 知识测验 + 留言板 + 排行榜

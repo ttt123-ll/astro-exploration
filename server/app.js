@@ -27,6 +27,7 @@ app.use('/api', require('./routes/messages'));
 app.use('/api', require('./routes/news'));
 app.use('/api', require('./routes/chat'));
 app.use('/api', require('./routes/admin'));
+app.use('/api', require('./routes/neo'));
 app.use('/api', require('./routes/misc'));
 
 app.use('/api', (req, res) => res.status(404).json({ ok: false, error: 'not_found' }));

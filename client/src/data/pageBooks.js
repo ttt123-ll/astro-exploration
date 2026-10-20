@@ -59,6 +59,11 @@ export const PAGE_BOOKS = {
         title: '延伸阅读 · 系统学习',
         desc: '下载资料之外，这几本书适合作为长期翻阅的系统读物。',
         books: ['illustrated-brief-history', 'universe-in-hand', 'star-dictionary']
+    },
+    neo: {
+        title: '延伸阅读 · 小行星与行星防御',
+        desc: '近地天体既是威胁也是资源——想了解人类如何发现、追踪并应对它们，可以从这几本书读起。',
+        books: ['cosmos', 'last-three-minutes', 'pale-blue-dot']
     }
 };
 
