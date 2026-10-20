@@ -400,6 +400,7 @@ chore: 构建/工具  perf: 性能优化
 | `npm run test:api` | 健康检查、公开接口、安全头、缓存压缩、验证码注册、Cookie 认证、权限、时区、排名口径、异常处理、限流、SEO | 42 |
 | `npm run test:ui` | 游客访问、受控页面、登录流程、Cookie 属性、页面功能 | 34 |
 | `tools/verify-timeline.js` | 宇宙编年史位置与文本渲染 | 8 |
+| `tools/verify-pagenav.js` | 返回首页导航条（6 个有入口 + 5 个无入口） | 26 |
 | `tools/verify-apod.js` | 今日天文图片位置与轮播 | 8 |
 | `tools/verify-facts.js` | 四季星座页区块 | 13 |
 | `tools/verify-scrollback.js` | 返回首页滚动位置恢复 | 7 |

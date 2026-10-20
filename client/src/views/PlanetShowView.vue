@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import projection from '../data/projection';
 import VideoSection from '../components/VideoSection.vue';
 import SpaceFlight from './SpaceFlightView.vue';
+import PageNav from '../components/PageNav.vue';
 
 /* 两种模式：星球投影 / 3D 遨游太空 */
 const mode = ref('project');
@@ -37,6 +38,7 @@ function pick(i) {
         </div>
 
         <div v-show="mode === 'project'" class="proj-page">
+        <PageNav title="星球投影" />
         <!-- 分类 -->
         <div class="cat-tabs">
             <button v-for="c in CATS" :key="c" class="cat-tab" :class="{ active: c === activeCat }" @click="switchCat(c)">{{ c }}</button>
