@@ -27,6 +27,9 @@ function restartHn() {
     if (hnTimer) clearInterval(hnTimer);
     hnTimer = setInterval(hnNext, 5200);
 }
+/* 鼠标停在轮播上时暂停自动播放与进度条 */
+function pauseHn() { if (hnTimer) { clearInterval(hnTimer); hnTimer = null; } }
+function resumeHn() { if (!hnTimer) restartHn(); }
 onMounted(loadHomeNews);
 onBeforeUnmount(() => { if (hnTimer) clearInterval(hnTimer); });
 
@@ -72,7 +75,7 @@ function enterPlanet(key) {
 
 <template>
     <!-- ============ 顶部：新闻轮播 ============ -->
-    <section class="hero-news" v-if="heroNews.length">
+    <section class="hero-news" v-if="heroNews.length" @mouseenter="pauseHn" @mouseleave="resumeHn">
         <div class="hn-slides">
             <article v-for="(n, i) in heroNews" :key="n.id"
                      class="hn-slide" :class="{ active: i === hnIdx }"
@@ -100,17 +103,43 @@ function enterPlanet(key) {
                     :aria-label="'第 ' + (i + 1) + ' 条'" @click="hnGo(i)"></button>
         </div>
 
+        <!-- 自动播放进度条：切换时重置 -->
+        <div class="hn-progress" v-if="heroNews.length > 1">
+            <span :key="hnIdx" class="hn-progress-bar"></span>
+        </div>
+
         <div class="hn-live"><span class="hn-live-dot"></span>实时新闻 · 共 {{ newsTotal }} 条</div>
+
+        <a href="#stats" class="scroll-hint" aria-label="向下探索">
+            <span>向下探索</span>
+            <i class="fas fa-chevron-down"></i>
+        </a>
     </section>
 
     <!-- ============ 宇宙数据条 ============ -->
-    <section class="stats-strip">
+    <section class="stats-strip" id="stats">
         <div class="container">
             <div class="hero-stats">
-                <div class="hero-stat"><div class="hero-stat-value" v-count:亿年="138">0</div><div class="hero-stat-label">宇宙年龄</div></div>
-                <div class="hero-stat"><div class="hero-stat-value" v-count:亿光年="930">0</div><div class="hero-stat-label">可观测宇宙直径</div></div>
-                <div class="hero-stat"><div class="hero-stat-value" v-count:万亿="2">0</div><div class="hero-stat-label">已知星系数量</div></div>
-                <div class="hero-stat"><div class="hero-stat-value" v-count="8">0</div><div class="hero-stat-label">太阳系行星</div></div>
+                <div class="hero-stat">
+                    <div class="hero-stat-icon"><i class="fas fa-hourglass-half"></i></div>
+                    <div class="hero-stat-value" v-count:亿年="138">0</div>
+                    <div class="hero-stat-label">宇宙年龄</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-icon"><i class="fas fa-arrows-left-right"></i></div>
+                    <div class="hero-stat-value" v-count:亿光年="930">0</div>
+                    <div class="hero-stat-label">可观测宇宙直径</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-icon"><i class="fas fa-circle-nodes"></i></div>
+                    <div class="hero-stat-value" v-count:万亿="2">0</div>
+                    <div class="hero-stat-label">已知星系数量</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-icon"><i class="fas fa-globe"></i></div>
+                    <div class="hero-stat-value" v-count="8">0</div>
+                    <div class="hero-stat-label">太阳系行星</div>
+                </div>
             </div>
         </div>
     </section>

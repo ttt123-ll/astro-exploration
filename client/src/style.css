@@ -4989,3 +4989,160 @@ a, button, .gallery-item, .feature-card, .planet-card, .type-card, .cons-card, .
 #main-content:focus {
     outline: none;
 }
+
+/* ==================================================================
+   首页细节（批次 B）
+   ================================================================== */
+
+/* —— 轮播自动播放进度条 —— */
+.hn-progress {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    z-index: 6;
+    overflow: hidden;
+}
+
+.hn-progress-bar {
+    display: block;
+    height: 100%;
+    width: 100%;
+    transform-origin: left center;
+    background: linear-gradient(90deg, var(--color-cyan), var(--color-gold));
+    box-shadow: 0 0 10px rgba(120, 220, 255, 0.85);
+    animation: hnProgress 5.2s linear forwards;
+}
+
+@keyframes hnProgress {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
+/* 悬停暂停自动播放时，进度条同步暂停 */
+.hero-news:hover .hn-progress-bar {
+    animation-play-state: paused;
+}
+
+/* —— 指示点：提高对比度 —— */
+.hn-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.32);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.hn-dot:hover {
+    background: rgba(255, 255, 255, 0.65);
+    transform: scale(1.15);
+}
+
+.hn-dot.active {
+    width: 38px;
+    border-radius: 50px;
+    background: linear-gradient(90deg, var(--color-cyan), var(--color-gold));
+    border-color: transparent;
+    box-shadow: 0 0 14px rgba(216, 224, 244, 0.9);
+}
+
+/* —— Ken Burns 缓慢缩放（与切换节奏匹配，交替方向） —— */
+.hn-slide.active {
+    animation: hnKen 10s ease-out forwards;
+}
+
+@keyframes hnKen {
+    from { background-size: 104% auto; }
+    to { background-size: 112% auto; }
+}
+
+.hn-slide:nth-child(even).active {
+    animation-name: hnKenAlt;
+}
+
+@keyframes hnKenAlt {
+    from { background-size: 112% auto; background-position: 40% center; }
+    to { background-size: 104% auto; background-position: 55% center; }
+}
+
+/* —— 向下探索提示 —— */
+.scroll-hint {
+    position: absolute;
+    right: 2rem;
+    bottom: 1.4rem;
+    z-index: 6;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    color: rgba(203, 213, 225, 0.85);
+    text-decoration: none;
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    writing-mode: vertical-rl;
+    transition: color 0.3s ease;
+}
+
+.scroll-hint i {
+    animation: hintBounce 1.9s ease-in-out infinite;
+    writing-mode: horizontal-tb;
+}
+
+.scroll-hint:hover {
+    color: var(--color-gold);
+}
+
+@keyframes hintBounce {
+    0%, 100% { transform: translateY(0); opacity: 0.55; }
+    50% { transform: translateY(6px); opacity: 1; }
+}
+
+/* —— 数据条：图标 + 数字发光 —— */
+.hero-stat-icon {
+    font-size: 1.05rem;
+    color: var(--color-cyan);
+    opacity: 0.8;
+    margin-bottom: 0.4rem;
+    transition: transform 0.35s ease, color 0.35s ease, opacity 0.35s ease;
+}
+
+.hero-stat:hover .hero-stat-icon {
+    color: var(--color-gold);
+    opacity: 1;
+    transform: translateY(-2px) scale(1.12);
+}
+
+.hero-stat-value {
+    transition: text-shadow 0.35s ease, color 0.35s ease;
+}
+
+.hero-stat:hover .hero-stat-value {
+    text-shadow: 0 0 24px rgba(216, 224, 244, 0.95), 0 0 46px rgba(120, 220, 255, 0.55);
+}
+
+.hero-stat {
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-stat::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 0%, rgba(120, 220, 255, 0.18), transparent 62%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+
+.hero-stat:hover::after {
+    opacity: 1;
+}
+
+@media (max-width: 900px) {
+    .scroll-hint {
+        right: 0.8rem;
+        bottom: 0.9rem;
+    }
+}
