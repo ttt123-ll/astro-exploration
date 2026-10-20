@@ -80,6 +80,7 @@ const postJson = (path, body, jar) => getJson(path, {
 
     const me = await getJson('/api/me', { headers: { Cookie: cookieHeader(reg.jar) } });
     check('Cookie 认证 /api/me 成功', me.r.status === 200 && me.j.user.username === uname, me.j);
+    const testUserId = me.j && me.j.user ? me.j.user.id : null;
 
     const badCap = await postJson('/api/register', {
         username: 'bad' + Date.now().toString().slice(-5),
@@ -134,6 +135,21 @@ const postJson = (path, body, jar) => getJson(path, {
         const position = latest ? lb.indexOf(latest) + 1 : -1;
         check(`[${cat}] 返回名次与榜单实际位置一致`, subs[2].rank === position, { got: subs[2].rank, position });
         check(`[${cat}] players 为同分类人数`, typeof subs[2].players === 'number', subs[2].players);
+    }
+
+    console.log('\n=== 8.5 清理测试数据（避免污染排行榜） ===');
+    if (testUserId) {
+        const del = await fetch(BASE + '/api/admin/users/' + testUserId, {
+            method: 'DELETE', headers: { Cookie: cookieHeader(adminJar) }
+        });
+        const delJson = await del.json().catch(() => ({}));
+        check('测试账号已删除（连带成绩）', del.status === 200 && delJson.ok === true, delJson);
+        const lbAfter = (await getJson('/api/leaderboard?cat=all')).j.rows;
+        check('排行榜已无测试账号', !lbAfter.some(r => r.username === uname));
+        check('不能删除管理员账号(400)',
+            (await fetch(BASE + '/api/admin/users/1', { method: 'DELETE', headers: { Cookie: cookieHeader(adminJar) } })).status === 400);
+    } else {
+        check('拿不到测试用户 id，跳过清理', false);
     }
 
     console.log('\n=== 9. 退出登录（服务端失效） ===');

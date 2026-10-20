@@ -49,6 +49,25 @@ router.get('/admin/scores', wrap(async (req, res) => {
     res.json({ ok: true, rows });
 }));
 
+/* 删除用户（连带其成绩与留言），用于清理论坛/测试产生的账号 */
+router.delete('/admin/users/:id', wrap(async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ ok: false, error: '无效的用户 ID' });
+    // 不能删除自己，也不能删除管理员账号，避免把自己锁在门外
+    if (id === req.user.id) return res.status(400).json({ ok: false, error: '不能删除当前登录账号' });
+
+    const [[target]] = await pool.query('SELECT id, username, role FROM users WHERE id = ?', [id]);
+    if (!target) return res.status(404).json({ ok: false, error: '用户不存在' });
+    if (target.role === 'admin') return res.status(400).json({ ok: false, error: '不能删除管理员账号' });
+
+    // 先清关联数据再删用户，保证没有孤儿记录
+    await pool.query('DELETE FROM scores WHERE user_id = ?', [id]);
+    await pool.query('DELETE FROM messages WHERE user_id = ?', [id]);
+    await pool.query('DELETE FROM users WHERE id = ?', [id]);
+
+    res.json({ ok: true, deleted: { id, username: target.username } });
+}));
+
 router.delete('/admin/scores/:id', wrap(async (req, res) => {
     await pool.query('DELETE FROM scores WHERE id = ?', [req.params.id]);
     res.json({ ok: true });
