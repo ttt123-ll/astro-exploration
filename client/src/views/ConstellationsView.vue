@@ -18,19 +18,6 @@ function nextFact() { factIdx.value = (factIdx.value + 1) % facts.length; }
 onMounted(() => { factAuto = setInterval(nextFact, 4200); });
 onBeforeUnmount(() => clearInterval(factAuto));
 
-/* —— 知识挑战：三道热身题（原首页区块移入） —— */
-const teasers = [
-    { q: '太阳系中最大的行星是哪一颗？', o: ['地球', '木星', '土星', '海王星'], a: 1, e: '木星的直径约13.98万公里，是太阳系最大的行星，能装下1300多个地球。' },
-    { q: '阳光从太阳表面到达地球，大约需要多长时间？', o: ['约8分钟', '约8秒钟', '约8小时', '约8天'], a: 0, e: '日地距离约1.5亿公里，光速每秒约30万公里，因此阳光需要约8分20秒到达地球。' },
-    { q: '银河系的中心潜伏着什么？', o: ['一颗红巨星', '超大质量黑洞（人马座A*）', '一片明亮的星云', '一团暗物质'], a: 1, e: '银河系中心潜伏着名为"人马座A*"的超大质量黑洞，质量约为太阳的400万倍。' }
-];
-const chosen = ref([-1, -1, -1]);
-const checked = ref([false, false, false]);
-function check(i) {
-    if (chosen.value[i] < 0) return;
-    checked.value[i] = true;
-}
-
 /* —— 宇宙尺度之旅（原首页区块移入） —— */
 const stages = [
     { name: '地球', size: '直径 12,742 公里', w: 56, cls: 'planet', desc: '我们唯一的家园——一颗蓝色的岩石行星。对人类而言它浩瀚无边，但在宇宙尺度下，它只是一粒微尘。' },
@@ -110,39 +97,6 @@ onBeforeUnmount(() => {
                 <div class="facts-actions">
                     <button class="btn btn-gold" @click="nextFact"><i class="fas fa-shuffle"></i> 换一条</button>
                     <router-link to="/timeline" class="btn btn-ghost"><i class="fas fa-hourglass-half"></i> 看宇宙编年史</router-link>
-                </div>
-            </div>
-        </section>
-
-        <!-- 知识挑战：三道热身题（原首页区块移入） -->
-        <section class="quiz-teaser">
-            <div class="section-head">
-                <h2 class="section-title"><span class="title-icon"><i class="fas fa-trophy"></i></span>知识挑战</h2>
-                <p class="section-subtitle">先来三道热身题，看看你的天文段位</p>
-            </div>
-            <div class="teaser-card" v-reveal>
-                <template v-for="(t, i) in teasers" :key="i">
-                    <p class="teaser-question"><span class="q-num">Q{{ i + 1 }}</span>{{ t.q }}</p>
-                    <div class="teaser-options">
-                        <div v-for="(o, j) in t.o" :key="j" class="option"
-                             :class="{ correct: checked[i] && j === t.a, wrong: checked[i] && j === chosen[i] && j !== t.a }"
-                             :style="chosen[i] === j && !checked[i] ? 'border-color:var(--color-cyan);background:rgba(147,197,253,0.12)' : ''"
-                             @click="chosen[i] = j">
-                            <span class="letter">{{ 'ABCD'[j] }}</span>{{ o }}
-                        </div>
-                    </div>
-                    <div v-if="checked[i]" class="teaser-result show" :class="chosen[i] === t.a ? 'ok' : 'no'">
-                        <i class="fas" :class="chosen[i] === t.a ? 'fa-circle-check' : 'fa-circle-xmark'"></i>
-                        {{ chosen[i] === t.a ? '答对了！' : '答错了。' }}{{ t.e }}
-                    </div>
-                    <div style="text-align:right;margin-bottom:2rem;">
-                        <button class="btn btn-primary" style="padding:0.6rem 1.6rem;font-size:0.9rem;" @click="check(i)" :disabled="checked[i]">
-                            <i class="fas fa-check"></i> 检查答案
-                        </button>
-                    </div>
-                </template>
-                <div style="text-align:center;border-top:1px solid rgba(159,212,248,0.2);padding-top:1.6rem;">
-                    <router-link to="/community?tab=quiz" class="btn btn-gold"><i class="fas fa-trophy"></i> 进入完整测验（20题）</router-link>
                 </div>
             </div>
         </section>
