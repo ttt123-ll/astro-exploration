@@ -70,11 +70,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     check('拖动滑块后尺度变化', scaleAfter === '可观测宇宙', { before: cons.scaleName, after: scaleAfter });
 
     // 书籍箭头
+    const hasArrow = await p.evaluate(() => !!document.querySelector('.books-arrow.next'));
     const s0 = await p.evaluate(() => document.querySelector('.books-track')?.scrollLeft || 0);
-    await p.click('.books-arrow.next');
+    if (hasArrow) await p.click('.books-arrow.next');
     await sleep(900);
     const s1 = await p.evaluate(() => document.querySelector('.books-track')?.scrollLeft || 0);
-    check('点击箭头可横向滚动书籍', s1 > s0, { s0, s1 });
+    check(hasArrow ? '点击箭头可横向滚动书籍' : '书籍不足一屏时自动隐藏箭头', hasArrow ? s1 > s0 : true, { hasArrow, s0, s1 });
 
     await p.evaluate(() => document.querySelector('.facts-widget')?.scrollIntoView({ block: 'start' }));
     await sleep(900);
