@@ -7,7 +7,7 @@ const read = f => fs.readFileSync(path.join(D, f), 'utf8');
 
 function evalExport(file) {
     const txt = read(file);
-    const m = txt.match(/export default\s*([\[{])/);
+    const m = txt.match(/export default\s*([[{])/);
     const start = m.index + m[0].lastIndexOf(m[1]);
     // 去掉结尾的 ";\n"
     const body = txt.slice(start).replace(/;\s*$/, '').trim();

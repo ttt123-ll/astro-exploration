@@ -1,0 +1,27 @@
+# 统一换行符：文本文件用 LF，Windows 脚本用 CRLF
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制文件不做换行转换与文本 diff
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.mp4 binary
+*.webm binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+
+# 语言统计
+*.vue linguist-language=Vue
+*.js linguist-language=JavaScript
+client/public/assets/** linguist-vendored
+
+# 历史页面等生成物不参与 diff
+git-history.html linguist-generated

@@ -8,7 +8,6 @@ const router = express.Router();
 const CATS = ['all', 'solar', 'star', 'bh', 'cosmos'];
 
 /* 统一排序口径：正确率 → 答对题数 → 用时短 → 提交早 */
-const ORDER = 'pct DESC, correct DESC, duration_sec ASC, id ASC';
 
 /* 同一口径下的名次：统计"排在我前面"的记录数（rank 是 MySQL 8 保留字，别名用 rank_no） */
 const RANK_SQL = `

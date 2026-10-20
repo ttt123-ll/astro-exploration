@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import api from '../api';
 import { relTime, clockTime } from '../utils/time';
 import PageNav from '../components/PageNav.vue';

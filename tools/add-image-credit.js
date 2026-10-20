@@ -1,6 +1,5 @@
 // 为图集图片补充出处（credit）字段
 const fs = require('fs');
-const path = require('path');
 const D = 'F:\\天文科普\\client\\src\\data\\gallery.js';
 
 const txt = fs.readFileSync(D, 'utf8');

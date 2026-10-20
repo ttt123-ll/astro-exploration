@@ -8,7 +8,7 @@ const SITE = process.env.SITE_URL || 'http://localhost:3000';
 
 function readExport(file) {
     const txt = fs.readFileSync(path.join(D, file), 'utf8');
-    const m = txt.match(/export default\s*([\[{])/);
+    const m = txt.match(/export default\s*([[{])/);
     if (!m) return null;
     const start = m.index + m[0].lastIndexOf(m[1]);
     return eval('(' + txt.slice(start).replace(/;\s*$/, '').trim() + ')');

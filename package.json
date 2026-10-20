@@ -1,0 +1,34 @@
+{
+  "name": "astro-exploration",
+  "version": "1.2.0",
+  "private": true,
+  "description": "宇宙探索 · 天文科普网站系统（Vue 3 + Express + MySQL + Three.js）",
+  "keywords": ["astronomy", "vue3", "express", "mysql", "threejs", "科普"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "install:all": "npm install && npm install --prefix client && npm install --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "dev:server": "npm start --prefix server",
+    "build:client": "npm run build --prefix client",
+    "build": "node tools/gen-sitemap.js && npm run build:client && node tools/precompress.js",
+    "start": "npm start --prefix server",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test:api": "node tools/verify-all.js",
+    "test:ui": "node tools/verify-frontend.js",
+    "test:all": "node tools/verify-all.js && node tools/verify-frontend.js",
+    "sitemap": "node tools/gen-sitemap.js",
+    "precompress": "node tools/precompress.js",
+    "git:history": "node tools/gen-git-history.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "eslint-plugin-vue": "^9.32.0",
+    "globals": "^15.14.0"
+  }
+}

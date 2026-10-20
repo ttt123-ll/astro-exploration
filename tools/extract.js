@@ -16,7 +16,6 @@ function stripTags(s) {
 
 function extractSections(html) {
     const sections = [];
-    const re = /<div class="detail-section">([\s\S]*?)<\/div>\s*(?=<div class="detail-section">|<div class="stats-grid"|<a class="back-btn"|<\/div>\s*<\/div>\s*<footer|$)/g;
     let m;
     const body = html;
     // 更稳健：先取出 detail-content 区域

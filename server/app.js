@@ -4,7 +4,6 @@ const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
-const config = require('./config');
 const log = require('./logger');
 const { corsMiddleware, helmetMiddleware, globalLimiter, accessLog } = require('./middleware/security');
 

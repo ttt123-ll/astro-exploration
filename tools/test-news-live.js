@@ -34,7 +34,6 @@ const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
     console.log('后台含新闻表单:', hasForm);
 
     await page.evaluate((t) => {
-        const inputs = document.querySelectorAll('.news-form .nf-input');
         const setVal = (el, v) => {
             const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
             setter.call(el, v);

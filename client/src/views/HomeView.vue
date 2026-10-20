@@ -3,7 +3,6 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import planets from '../data/planets';
 import api from '../api';
-import { relTime } from '../utils/time';
 
 /* —— 首页新闻（实时读取数据库） —— */
 const newsList = ref([]);
