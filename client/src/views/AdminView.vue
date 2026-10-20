@@ -213,7 +213,9 @@ onMounted(load);
                             <td class="cell-time">{{ fmtDateTime(u.created_at) }}</td>
                             <td>
                                 <button v-if="u.role !== 'admin'" class="sys-del-btn" title="删除用户（连带其成绩与留言）"
-                                        @click="del('/admin/users/', u.id)"><i class="fas fa-trash-can"></i></button>
+                                        @click="del('/admin/users/', u.id)">
+                                    <i class="fas fa-trash-can"></i>
+                                </button>
                             </td>
                         </tr>
                     </tbody>
