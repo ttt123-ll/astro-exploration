@@ -13,6 +13,7 @@
     "install:all": "npm install && npm install --prefix client && npm install --prefix server",
     "dev:client": "npm run dev --prefix client",
     "dev:server": "npm start --prefix server",
+    "build:index": "node server/rag/build-index.js",
     "build:client": "npm run build --prefix client",
     "build": "node tools/gen-sitemap.js && npm run build:client && node tools/precompress.js",
     "start": "npm start --prefix server",

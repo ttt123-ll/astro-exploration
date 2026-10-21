@@ -339,6 +339,22 @@ npm run dev:client        # 终端 2：http://127.0.0.1:5173（已代理 /api）
 | **工具调用（零 API 依赖）** | 月相计算（朔望月推算）、今夜观星（月相 + 日落暮光 + 当季星座实时方位高度）、页面导航（「带我去木星」自动跳转详情页） |
 | **相关性门槛** | 最高检索分 < 0.26 视为无命中，走第 3 级兜底，避免用不相关资料硬答 |
 
+### 赛题方向对应（方向②：向量数据库 + 检索增强生成）
+
+| 赛题要求 | 本项目实现 | 代码位置 |
+|---|---|---|
+| 向量数据库 | 1024 维哈希向量库，gzip 持久化（`server/rag/.local-index.json`），内容 hash 变化自动增量重建；镜像构建期预生成 | `server/rag/localVector.js`、`server/rag/build-index.js` |
+| 结构化知识库 | 站内数据自动切片：行星 / 星座 / 百科长文 / 时间线 + 概念 FAQ = **141 知识块 / 52 来源页** | `server/rag/data.js`、`server/rag/faq.js` |
+| 混合检索 | 词法（中文 bigram + 专名加权 0.62）× 向量（TF-IDF 余弦 0.38）融合；结果正文前缀去重 | `server/rag/search.js` |
+| 检索增强生成 | 配置 `AI_API_KEY` 时把 Top-K 片段注入提示词，要求【1】【2】角标引用 | `server/chat.js` |
+| 可溯源 | 角标 → 来源卡片（标题 + 站内路由），前端可点击跳转 | `client/src/views/AiAssistantView.vue` |
+| 可靠性 | 三级降级：大模型 → 本地知识库原文摘录 → 兜底引导 + 推荐问题 | `server/chat.js` |
+| 检索评估 | `tools/verify-rag.js`：10 条标注查询计算 Hit@1 / Hit@3 / MRR，并校验索引持久化 | `tools/verify-rag.js` |
+
+> 检索评估（ode tools/verify-rag.js，10 条标注查询）：**Hit@1 90% · Hit@3 100% · MRR 0.950**。
+>
+> 向量库状态可通过 `GET /api/chat/mode` 查看（维度、知识块数、索引来源 disk/built、文件大小）。
+
 > 检索质量示例（离线模式）：`光年是什么单位` → 命中 FAQ（1.09 分）；`如何做红烧肉` → 无命中，触发兜底。
 
 ---
@@ -444,6 +460,7 @@ chore: 构建/工具  perf: 性能优化
 | `tools/verify-ai-ui.js` | AI 助手界面：角标溯源、级别/工具徽标、兜底推荐、自动跳转 | 20 |
 | `tools/verify-mobile.js` | 移动端（iPhone 12 / 360px / iPad）：横向溢出、汉堡菜单、关键页可用性 | 90 |
 | `tools/verify-images.js` | 图片资源完整性：无缺失、无水印文字、尺寸合理 | 8 |
+| `tools/verify-rag.js` | RAG 检索评估：Hit@1/Hit@3/MRR + 向量库状态 + 端到端问答 | 13 |
 
 ```bash
 npm run test:all                # API + 前端回归
