@@ -1,0 +1,32 @@
+Font Awesome Free 6.4.0
+=======================
+
+本项目使用 Font Awesome Free 图标字体（本地文件位于 client/public/assets/lib/font-awesome/）。
+
+许可证与署名要求
+----------------
+
+Font Awesome Free 由 Fonticons, Inc. 发布，采用以下三重许可：
+
+1. 图标（Icons）：CC BY 4.0
+   https://creativecommons.org/licenses/by/4.0/
+   使用时需署名 Font Awesome。
+
+2. 字体（Fonts）：SIL Open Font License 1.1
+   https://scripts.sil.org/OFL
+
+3. 代码（Code，含 CSS 与 JS）：MIT License
+   https://opensource.org/licenses/MIT
+
+官方许可说明
+------------
+
+https://fontawesome.com/license/free
+
+署名要求
+--------
+
+依据 CC BY 4.0，本项目在「素材来源与版权说明」页面（/credits）中注明：
+「图标字体由 Font Awesome Free 提供，遵循 CC BY 4.0 / SIL OFL 1.1 许可」。
+
+Copyright (c) Fonticons, Inc. — https://fontawesome.com
