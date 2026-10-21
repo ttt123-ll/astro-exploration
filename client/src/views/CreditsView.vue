@@ -132,6 +132,12 @@ const verify = [
                 SolarSystemScope 贴图遵循 CC BY 4.0 授权；Font Awesome 遵循其开源许可。
                 如权利人认为本站使用方式不妥，请联系我们，我们将立即处理。
             </p>
+            <p style="color:var(--color-text-muted);line-height:1.9;font-size:0.82rem;margin-top:0.8rem;">
+                本站代码与界面均为原创实现：前端页面、3D 交互、后端接口与数据库设计均由本项目自行编写；
+                交互设计思路参考了 NASA Eyes 等公开科普产品，但未使用其任何源代码或素材。
+                <br>图标字体：Font Awesome Free（图标 CC BY 4.0 / 字体 SIL OFL 1.1）。
+                <br>致谢：NASA / ESA / STScI / SolarSystemScope / Wikimedia Commons。
+            </p>
         </div>
         <BookSection topic="credits" />
     </div>
