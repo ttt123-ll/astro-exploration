@@ -25,7 +25,7 @@ function connectAny(host, port) {
             const ip = ips[i++];
             const sock = net.connect({ host: ip, port });
             sock.setTimeout(9000);
-            const onErr = (e) => { sock.destroy(); tryNext(); };
+            const onErr = () => { sock.destroy(); tryNext(); };
             sock.once('error', onErr);
             sock.once('timeout', onErr);
             sock.once('connect', () => {
