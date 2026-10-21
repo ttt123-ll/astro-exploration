@@ -73,5 +73,13 @@ module.exports = {
         apiKey: process.env.AI_API_KEY || '',
         baseUrl: process.env.AI_BASE_URL || 'https://api.deepseek.com/v1',
         model: process.env.AI_MODEL || 'deepseek-chat'
+    },
+
+    /* 向量检索（可选）：OpenAI 兼容 /embeddings 接口；不配置则使用纯词法检索 */
+    embed: {
+        url: process.env.AI_EMBED_URL || '',
+        key: process.env.AI_EMBED_KEY || process.env.AI_API_KEY || '',
+        model: process.env.AI_EMBED_MODEL || '',
+        get enabled() { return !!(this.url && this.key && this.model); }
     }
 };

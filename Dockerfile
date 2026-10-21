@@ -46,6 +46,8 @@ RUN cd server \
 # server/app.js 期望 ../client/dist 相对自身
 COPY server/ ./server/
 COPY --from=client-build /app/client/dist ./client/dist
+# RAG 知识库需要读取前端数据文件（planets/constellations/content/timeline）
+COPY --from=client-build /app/client/src/data ./client/src/data
 
 # 非 root 运行
 RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
