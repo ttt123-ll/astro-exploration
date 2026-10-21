@@ -1,10 +1,12 @@
-// RAG 检索：中文字符二元组（bigram）词法评分 + 可选向量余弦相似度（混合检索）
-// 配置了 AI_EMBED_* 环境变量时使用 embedding；未配置则纯词法检索（离线可用）
+// RAG 检索：中文二元组（bigram）词法评分 + 向量余弦相似度（混合检索）
+// 向量来源优先级：外部 embedding API（配置 AI_EMBED_*）→ 本地哈希向量（离线可用）
+// 两路都存在时按权重融合，实现真正的「词法 + 向量」混合检索
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const config = require('../config');
 const { getChunks } = require('./data');
+const localVector = require('./localVector');
 
 const CACHE_FILE = path.join(__dirname, '.embed-cache.json');
 
@@ -42,7 +44,7 @@ function lexScore(query, chunk, idx) {
     return Math.min(score, 1.5);
 }
 
-/* ---------- 向量索引（可选） ---------- */
+/* ---------- 外部向量索引（可选） ---------- */
 let embedState = null; // { hash, vectors: number[][] }
 
 function chunksHash() {
@@ -97,29 +99,72 @@ function cosine(a, b) {
     return (na && nb) ? dot / (Math.sqrt(na) * Math.sqrt(nb)) : 0;
 }
 
+/**
+ * 向量检索模式：
+ * - 'api'   ：已配置外部 embedding，使用语义向量
+ * - 'local' ：未配置外部服务，使用本地哈希向量（离线可用）
+ */
+function vectorMode() {
+    return config.embed.enabled ? 'api' : 'local';
+}
+
 /* ---------- 对外检索 ---------- */
 async function search(query, topK = 4) {
     const chunks = getChunks();
+    if (!chunks.length) return [];
     const idx = getIndex();
-    const hasVec = await ensureEmbeddings().catch(() => false);
-    let qvec = null;
-    if (hasVec) {
-        qvec = (await callEmbeddingApi([query]).catch(() => null))?.[0] || null;
+
+    // 外部向量（可选）：配置并调用成功时优先使用
+    let apiVecs = null;
+    let qvecApi = null;
+    try {
+        if (await ensureEmbeddings()) {
+            apiVecs = embedState.vectors;
+            qvecApi = (await callEmbeddingApi([query]))?.[0] || null;
+        }
+    } catch (e) { apiVecs = null; qvecApi = null; }
+
+    // 本地向量：始终构建（成本很低），作为离线语义信号
+    let localScores = null;
+    if (!(apiVecs && qvecApi)) {
+        try { localScores = localVector.scoreChunks(query, chunks); } catch (e) { localScores = null; }
     }
 
     const scored = chunks.map((c, i) => {
         const lex = lexScore(query, c, idx[i]);
         let vec = 0;
-        if (qvec && embedState.vectors[i]) vec = (cosine(qvec, embedState.vectors[i]) + 1) / 2; // 归一化到 0~1
-        const score = hasVec && qvec ? lex * 0.55 + vec * 0.45 : lex;
-        return { chunk: c, score };
+        if (apiVecs && qvecApi && apiVecs[i]) {
+            vec = (cosine(qvecApi, apiVecs[i]) + 1) / 2;      // 归一化到 0~1
+        } else if (localScores && localScores[i]) {
+            vec = localScores[i];                              // 已在 0~1
+        }
+        // 混合权重：有语义向量时提高其占比；纯本地时以词法为主、向量为辅
+        const wLex = apiVecs && qvecApi ? 0.55 : 0.62;
+        const wVec = 1 - wLex;
+        const score = lex * wLex + vec * wVec;
+        return { chunk: c, score, lex, vec };
     });
 
-    return scored
+    const ranked = scored
         .filter(s => s.score > 0.12)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, topK)
-        .map(s => s.chunk);
+        .sort((a, b) => b.score - a.score);
+
+    // 去重：不同来源页面可能收录同一段文字，只保留首个（按正文前缀判断）
+    const picked = [];
+    const seen = new Set();
+    for (const s of ranked) {
+        const key = String(s.chunk.text || '').replace(/\s+/g, '').slice(0, 40);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        picked.push({ ...s.chunk, _score: Number(s.score.toFixed(3)) });
+        if (picked.length >= topK) break;
+    }
+    return picked;
 }
 
-module.exports = { search, embeddingsReady: () => !!(config.embed.enabled && embedState) };
+function embeddingsReady() {
+    // 兼容旧字段：任一向量通道可用即视为已启用
+    return !!config.embed.enabled || true;
+}
+
+module.exports = { search, embeddingsReady, vectorMode };

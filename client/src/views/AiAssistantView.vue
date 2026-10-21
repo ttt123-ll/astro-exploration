@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, onMounted } from 'vue';
+import { ref, computed, nextTick, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 import PageHeader from '../components/PageHeader.vue';
@@ -22,15 +22,18 @@ const sessionId = getSessionId();
 /* ===================== 模式与知识库规模 ===================== */
 const mode = ref('llm');
 const kb = ref(null);
-const vector = ref(false);
+const vector = ref('local');
+const levels = ref([]);
 async function loadMode() {
     try {
         const { data } = await api.get('/chat/mode');
         mode.value = data.mode || 'llm';
         kb.value = data.kb || null;
-        vector.value = !!data.vector;
+        vector.value = data.vector || 'local';
+        levels.value = Array.isArray(data.levels) ? data.levels : [];
     } catch (e) { /* 接口不可用时保持默认展示 */ }
 }
+const vectorLabel = computed(() => vector.value === 'api' ? '语义向量' : '本地向量');
 onMounted(loadMode);
 
 /* ===================== 消息与发送 ===================== */
@@ -53,7 +56,10 @@ function renderBot(text) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
-    return esc.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+    return esc
+        .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+        // 角标溯源：【1】→ 上标徽标，与下方来源列表一一对应
+        .replace(/【(\d+)】/g, '<sup class="ai-cite">$1</sup>');
 }
 
 /* navigate 动作：提示 + 600ms 后跳转；已在该路由则只提示 */
@@ -78,6 +84,10 @@ async function send(text) {
             role: 'bot',
             text: data.reply || '（没有收到回复）',
             sources: Array.isArray(data.sources) ? data.sources.filter(s => s && s.title) : [],
+            suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
+            level: data.level || 2,
+            levelLabel: data.levelLabel || '',
+            tools: Array.isArray(data.tools) ? data.tools : [],
             nav: null
         };
         messages.value.push(botMsg);
@@ -104,8 +114,14 @@ async function send(text) {
                 <span class="ai-dot" :class="mode === 'llm' ? 'on' : 'local'"></span>
                 {{ mode === 'llm' ? 'AI 大模型 · 在线' : '本地知识库 · 离线可用' }}
             </span>
+            <span class="ai-kb">
+                <i class="fas fa-vector-square"></i>{{ vectorLabel }}检索
+            </span>
             <span v-if="kb" class="ai-kb">
                 <i class="fas fa-database"></i>{{ kb.chunks }} 知识块 · {{ kb.sources }} 来源页面
+            </span>
+            <span v-if="levels.length" class="ai-kb ai-levels">
+                <i class="fas fa-layer-group"></i>{{ levels.map(l => l.name).join(' → ') }}
             </span>
         </div>
 
@@ -149,6 +165,25 @@ async function send(text) {
                         <div v-if="m.role === 'user'" class="ai-bubble">{{ m.text }}</div>
                         <div v-else class="ai-bubble" v-html="renderBot(m.text)"></div>
 
+                        <!-- 三级降级可视化：本条回答的级别 + 调用的工具 -->
+                        <div v-if="m.role === 'bot' && (m.levelLabel || (m.tools && m.tools.length))" class="ai-meta">
+                            <span v-if="m.levelLabel" class="ai-level" :class="'lv' + m.level">
+                                <i class="fas fa-circle-nodes"></i>{{ m.levelLabel }}
+                            </span>
+                            <span v-for="tool in m.tools" :key="tool" class="ai-tool">
+                                <i class="fas" :class="{
+                                    'fa-moon': tool === 'moon-phase',
+                                    'fa-star-and-crescent': tool === 'tonight-sky',
+                                    'fa-location-arrow': tool === 'navigate'
+                                }"></i>{{ tool === 'moon-phase' ? '月相计算' : tool === 'tonight-sky' ? '今夜观星' : '页面导航' }}
+                            </span>
+                        </div>
+
+                        <!-- 第 3 级兜底：给出可点的推荐问题 -->
+                        <div v-if="m.role === 'bot' && m.suggestions && m.suggestions.length" class="ai-quick ai-quick-inline">
+                            <button v-for="q in m.suggestions" :key="q" @click="send(q)">{{ q }}</button>
+                        </div>
+
                         <!-- 溯源来源 -->
                         <div v-if="m.sources && m.sources.length" class="ai-sources">
                             <router-link v-for="(s, si) in m.sources" :key="si" class="ai-src" :to="s.route || '/'">
@@ -183,6 +218,44 @@ async function send(text) {
 </template>
 
 <style scoped>
+/* 角标溯源：回答中的上标数字，对应下方来源列表 */
+:deep(.ai-cite) {
+    display: inline-grid;
+    place-items: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    margin: 0 2px;
+    border-radius: 5px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #0a0d18;
+    background: var(--color-cyan);
+    vertical-align: super;
+}
+
+/* 回答级别 / 工具标签 */
+.ai-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.45rem; }
+.ai-level, .ai-tool {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.18rem 0.55rem;
+    border-radius: 50px;
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+}
+.ai-level.lv1 { color: #4ade80; background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.35); }
+.ai-level.lv2 { color: #8fd3e8; background: rgba(143, 211, 232, 0.1); border: 1px solid rgba(143, 211, 232, 0.3); }
+.ai-level.lv3 { color: #e8a06e; background: rgba(232, 160, 110, 0.1); border: 1px solid rgba(232, 160, 110, 0.32); }
+.ai-tool {
+    color: #c4b5fd;
+    background: rgba(167, 139, 250, 0.09);
+    border: 1px solid rgba(167, 139, 250, 0.28);
+}
+.ai-quick-inline { margin-top: 0.55rem; }
+
 /* ===================== 状态条 ===================== */
 .ai-statusbar {
     display: flex;
