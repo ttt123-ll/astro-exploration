@@ -19,9 +19,9 @@ const PAGES = [
     ['/news', '宇宙新闻', 2],
     ['/community', '互动社区', 2],
     ['/credits', '素材来源与版权说明', 2],
-    ['/deep-space', '深空天体', 2],
+    ['/deep-space', '深空天体', 3],
     ['/explore', '探索工具', 3],
-    ['/download', '系统部署说明', 2]
+    ['/download', '系统部署说明', 3]
 ];
 
 (async () => {

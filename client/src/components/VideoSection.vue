@@ -16,6 +16,7 @@ const list = computed(() => videos.filter(v => (v.topics || []).includes(props.t
         <div class="vs-head">
             <h3 class="vs-title"><i class="fas fa-circle-play"></i> {{ title }}</h3>
             <span class="vs-sub">NASA 官方视频 · 公有领域</span>
+            <router-link to="/videos" class="vs-more">查看全部 <i class="fas fa-arrow-right"></i></router-link>
         </div>
         <div class="vs-grid" :class="{ single: list.length === 1 }">
             <div v-for="v in list" :key="v.src" class="vs-card">
@@ -37,6 +38,8 @@ const list = computed(() => videos.filter(v => (v.topics || []).includes(props.t
 .vs-title { font-family: var(--font-title); color: var(--color-gold); font-size: 1.3rem; }
 .vs-title i { color: var(--color-cyan); margin-right: 0.4rem; }
 .vs-sub { color: var(--color-text-muted); font-size: 0.8rem; }
+.vs-more { margin-left: auto; font-size: 0.78rem; color: var(--color-cyan); text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem; transition: color 0.3s ease; }
+.vs-more:hover { color: var(--color-gold); }
 .vs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
 .vs-grid.single { grid-template-columns: minmax(0, 620px); }
 .vs-card {

@@ -420,6 +420,7 @@ chore: 构建/工具  perf: 性能优化
 | `tools/verify-3d-neo.js` | 小行星带、行星标签、点击飞掠面板、NEO 页与接口 | 25 |
 | `tools/verify-3d-render.js` | 3D 画布实际渲染（默认与 ?nolog=1 兜底模式） | 5 |
 | `tools/verify-3d-recover.js` | 飞掠后遮罩复位、复位按钮与 R 键恢复视角 | 12 |
+| `tools/verify-pages2.js` | 详情页/视频页/下载页/深空页本轮改进（37 项） | 37 |
 
 ```bash
 npm run test:all                # API + 前端回归
