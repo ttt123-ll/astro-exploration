@@ -25,6 +25,18 @@ function scrollBottom() {
     nextTick(() => { if (listEl.value) listEl.value.scrollTop = listEl.value.scrollHeight; });
 }
 
+/* 会话 id：多轮上下文标识（与整页 AI 助手相互独立） */
+function getWidgetSession() {
+    let id = null;
+    try { id = sessionStorage.getItem('ai_widget_session'); } catch (e) { /* 隐私模式 */ }
+    if (!id) {
+        id = crypto.randomUUID();
+        try { sessionStorage.setItem('ai_widget_session', id); } catch (e) { /* 忽略 */ }
+    }
+    return id;
+}
+const widgetSessionId = getWidgetSession();
+
 async function send(text) {
     const q = (text !== undefined ? text : input.value).trim();
     if (!q || sending.value) return;
@@ -33,8 +45,18 @@ async function send(text) {
     scrollBottom();
     sending.value = true;
     try {
-        const { data } = await api.post('/chat', { message: q });
-        messages.value.push({ role: 'bot', text: data.reply || '（没有收到回复）' });
+        const { data } = await api.post('/chat', { message: q, sessionId: widgetSessionId });
+        const botMsg = {
+            role: 'bot',
+            text: data.reply || '（没有收到回复）',
+            sources: Array.isArray(data.sources) ? data.sources.filter(s => s && s.title) : [],
+            navHint: ''
+        };
+        /* 页面导航动作：小窗只提示，不自动跳转 */
+        if (data.action && data.action.type === 'navigate' && data.action.label) {
+            botMsg.navHint = '正在带你去' + data.action.label + '…';
+        }
+        messages.value.push(botMsg);
     } catch (e) {
         messages.value.push({ role: 'bot', text: '连接失败，请确认后端服务已启动。' });
     } finally {
@@ -59,7 +81,7 @@ function toggle() {
             <span class="chat-avatar"><i class="fas fa-robot"></i></span>
             <div class="chat-head-txt">
                 <b>AI 天文助手</b>
-                <small>{{ mode === 'llm' ? 'AI 大模型 · 在线' : '内置天文知识库 · 离线可用' }}</small>
+                <small>{{ mode === 'llm' ? 'AI 大模型 · 在线' : '本地知识库 · 离线可用' }}</small>
             </div>
             <button class="chat-close" @click="open = false"><i class="fas fa-chevron-down"></i></button>
         </div>
@@ -67,7 +89,17 @@ function toggle() {
         <div class="chat-list" ref="listEl">
             <div v-for="(m, i) in messages" :key="i" class="chat-msg" :class="m.role">
                 <span v-if="m.role === 'bot'" class="msg-avatar"><i class="fas fa-robot"></i></span>
-                <div class="msg-bubble">{{ m.text }}</div>
+                <div class="msg-stack">
+                    <div class="msg-bubble">{{ m.text }}</div>
+                    <div v-if="m.sources && m.sources.length" class="msg-sources">
+                        <router-link v-for="(s, si) in m.sources" :key="si" class="msg-src" :to="s.route || '/'">
+                            <i class="fas fa-book-open"></i><span>{{ s.title }}</span>
+                        </router-link>
+                    </div>
+                    <div v-if="m.navHint" class="msg-navhint">
+                        <i class="fas fa-wand-magic-sparkles"></i>{{ m.navHint }}
+                    </div>
+                </div>
             </div>
             <div v-if="sending" class="chat-msg bot">
                 <span class="msg-avatar"><i class="fas fa-robot"></i></span>
@@ -162,8 +194,15 @@ function toggle() {
     background: rgba(157, 140, 240, 0.2); color: #c4b5fd;
     display: flex; align-items: center; justify-content: center; font-size: 0.75rem;
 }
-.msg-bubble {
+.msg-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
     max-width: 75%;
+    align-items: flex-start;
+}
+.chat-msg.user .msg-stack { align-items: flex-end; }
+.msg-bubble {
     padding: 0.65rem 0.9rem;
     border-radius: 14px;
     font-size: 0.88rem;
@@ -171,6 +210,8 @@ function toggle() {
     color: #e8eefc;
     background: rgba(159, 212, 248, 0.1);
     border: 1px solid rgba(159, 212, 248, 0.25);
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 .chat-msg.user .msg-bubble {
     background: var(--gradient-primary);
@@ -179,6 +220,32 @@ function toggle() {
     border-bottom-right-radius: 4px;
 }
 .chat-msg.bot .msg-bubble { border-bottom-left-radius: 4px; }
+
+.msg-sources { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.msg-src {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.22rem 0.6rem;
+    border-radius: 50px;
+    font-size: 0.68rem;
+    text-decoration: none;
+    color: #9fd4f8;
+    background: rgba(159, 212, 248, 0.07);
+    border: 1px solid rgba(159, 212, 248, 0.25);
+    transition: all 0.25s ease;
+}
+.msg-src:hover { background: rgba(159, 212, 248, 0.18); border-color: var(--color-cyan); }
+.msg-src i { font-size: 0.62rem; }
+
+.msg-navhint {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    color: var(--color-gold);
+}
+.msg-navhint i { font-size: 0.66rem; }
 
 .typing { display: flex; gap: 4px; align-items: center; padding: 0.85rem 1rem; }
 .typing span {

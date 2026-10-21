@@ -6,6 +6,7 @@ export const navLinks = [
     { label: '星空图集', path: '/gallery' },
     { label: '宇宙时间线', path: '/timeline' },
     { label: '近地天体', path: '/neo' },
+    { label: 'AI 助手', path: '/assistant' },
     { label: '宇宙新闻', path: '/news' },
     { label: '互动社区', path: '/community' }
 ];
@@ -26,7 +27,9 @@ export const features = [
     { icon: 'fa-trophy', cls: 'quiz-icon', title: '互动社区', path: '/community',
       desc: '参加天文知识竞赛、在留言板留下足迹，成绩实时登上星际排行榜——学习与交流都在这一页。' },
     { icon: 'fa-compass', cls: 'tool-icon', title: '探索工具', path: '/explore',
-      desc: '星图查询、光年换算、观测指南等互动小工具，把天文知识变成可以动手玩的体验。' }
+      desc: '星图查询、光年换算、观测指南等互动小工具，把天文知识变成可以动手玩的体验。' },
+    { icon: 'fa-robot', cls: 'tool-icon', title: 'AI 助手', path: '/assistant',
+      desc: '基于站内知识库的 RAG 智能问答：月相计算、今夜观星推荐、可溯源回答，离线也能用。' }
 ];
 
 export const facts = [

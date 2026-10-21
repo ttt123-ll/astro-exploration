@@ -1,73 +1,44 @@
-// 天文问答知识库（规则式 AI 对话，无外部依赖）
+// AI 天文问答编排：工具调用 → RAG 检索 → 大模型生成 → 本地降级回答
+// 降级策略（无 API key / 断网 / 超时）：直接基于检索到的站内资料作答，离线可演示
 const config = require('./config');
+const { search, embeddingsReady } = require('./rag/search');
+const { runTools } = require('./rag/tools');
+const { kbStats } = require('./rag/data');
 
-const KNOWLEDGE = [
-    { k: ['黑洞', '奇点', '事件视界', '史瓦西'], a: '黑洞是宇宙中引力极强的天体，连光都无法逃脱。它的"边界"叫事件视界，一旦跨过就无法返回。银河系中心就有一个名为"人马座A*"的超大质量黑洞，质量约为太阳的400万倍。' },
-    { k: ['太阳系', '八大行星', '行星', '水星', '金星', '火星', '木星', '土星', '天王星', '海王星', '地球'], a: '太阳系由太阳和八大行星组成：水星、金星、地球、火星（类地行星）以及木星、土星、天王星、海王星（气态/冰巨行星）。此外还有矮行星（如冥王星）、小行星带和彗星等天体。' },
-    { k: ['宇宙', '大爆炸', '年龄', '起源', '诞生'], a: '宇宙诞生于约138亿年前的大爆炸，从一个极高温、极高密度的状态开始膨胀。可观测宇宙的直径约为930亿光年，其中约包含2万亿个星系。' },
-    { k: ['恒星', '太阳', '发光', '核聚变'], a: '恒星是由炽热气体组成的、能自己发光的球状天体，其能量来自核心的氢核聚变。太阳就是一颗恒星（黄矮星），寿命约100亿年，目前已走过约46亿年。' },
-    { k: ['光年', '光速', '距离', '多远'], a: '光年是距离单位，表示光在一年里走过的路程，约9.46万亿公里。光速约每秒30万公里，阳光到达地球需要约8分20秒。' },
-    { k: ['月球', '月亮', '阴晴圆缺', '月相'], a: '月球是地球唯一的天然卫星，绕地球公转约27.3天。月相变化是因为我们看到的月球被照亮部分在变化。月球正以每年约3.8厘米的速度远离地球。' },
-    { k: ['火星', '红色星球', '火星生命'], a: '火星因表面富含氧化铁而呈红色，被称为"红色星球"。它有太阳系最高的火山（奥林帕斯山）和最深的峡谷（水手号峡谷）。科学家认为火星远古曾存在液态水，可能存在过微生物。' },
-    { k: ['星座', '十二星座', '猎户座', '天蝎座', '狮子座'], a: '星座是人为划分的天球区域，全天共88个。四季星空各有代表：春季看狮子座，夏季寻天蝎座，秋季望飞马座，冬季观猎户座。' },
-    { k: ['银河系', '银河', '星系', '仙女座'], a: '银河系是我们所在的星系，包含约1000亿到4000亿颗恒星，属于棒旋星系。距离我们最近的大型星系是仙女座星系（约254万光年），40亿年后它将与银河系相撞合并。' },
-    { k: ['超新星', '爆发', '爆炸'], a: '超新星是大质量恒星生命末期发生的剧烈爆炸，亮度可短暂超过整个星系。爆炸会把重元素抛向宇宙——我们身体里的碳、氧等元素就来自远古的超新星。' },
-    { k: ['白矮星', '中子星', '脉冲星', '恒星死亡', '归宿'], a: '恒星的归宿取决于质量：像太阳这样的恒星最终会变成白矮星；质量更大的会爆发为超新星，留下中子星或黑洞。一勺中子星物质的质量约相当于一座珠穆朗玛峰。' },
-    { k: ['暗物质', '暗能量', '看不见'], a: '暗物质和暗能量是宇宙中看不见的"主角"：暗物质通过引力维系星系，暗能量则推动宇宙加速膨胀。它们合计约占宇宙质能总量的95%，但本质至今仍是未解之谜。' },
-    { k: ['登月', '阿波罗', '阿姆斯特朗', '月球登陆'], a: '1969年7月20日，阿波罗11号宇航员阿姆斯特朗和奥尔德林首次登上月球，"这是我个人的一小步，却是人类的一大步"。' },
-    { k: ['哈勃', '韦伯', '望远镜', '詹姆斯'], a: '哈勃太空望远镜（1990年发射）和詹姆斯·韦伯望远镜（2021年发射）是史上最著名的空间望远镜。韦伯主镜6.5米，主要在红外波段观测，能看到宇宙最早的星系。' },
-    { k: ['日食', '月食', '全食'], a: '日食是月球运行到太阳和地球之间挡住阳光；月食是地球挡住射向月球的光。2026年8月将发生一次壮观的日全食。' },
-    { k: ['流星', '流星雨', '陨石'], a: '流星是太空中的尘埃或小石块进入大气层燃烧发光的现象。流星雨是地球穿过彗星留下的尘埃带形成的，著名的有英仙座流星雨、狮子座流星雨等。' },
-    { k: ['系外行星', '外星人', '外星生命', '宜居'], a: '人类已发现数千颗系外行星。科学家通过"凌星法"等方法寻找位于宜居带、可能拥有液态水的行星，这是搜寻外星生命的重要方向。' },
-    { k: ['宇宙膨胀', '膨胀', '红移', '哈勃定律'], a: '宇宙正在加速膨胀，这由哈勃定律（星系退行速度与距离成正比）揭示。宇宙膨胀的"幕后推手"被认为是暗能量。' },
-    { k: ['相对论', '时间膨胀', '爱因斯坦'], a: '爱因斯坦的狭义相对论指出：速度越快、引力越强，时间流逝越慢。GPS卫星每天都要校正这种相对论时间效应，否则导航会严重失准。' },
-    { k: ['北极星', '导航', '找北'], a: '北极星位于天北极附近，几乎固定不动，是北半球辨别方向的重要标志。可以用北斗七星"勺口"两星连线的延长线来找到它。' },
-    { k: ['太阳温度', '太阳多大', '太阳表面'], a: '太阳直径约139万公里，是地球的109倍，能装下约130万个地球。太阳表面温度约5500℃，核心高达约1500万℃，核心的核聚变每秒把约400万吨物质转化为能量。' },
-    { k: ['地球多大', '地球直径', '地球半径'], a: '地球直径约12742公里，是太阳系第五大行星。它表面约71%被海洋覆盖，是太阳系中唯一已知存在生命的行星。' },
-    { k: ['彗星', '哈雷彗星', '尾巴'], a: '彗星是冰和尘埃组成的"脏雪球"，靠近太阳时冰升华形成彗发和彗尾。哈雷彗星是最著名的周期彗星，约76年回归一次，上次回归是1986年。' },
-    { k: ['小行星', '陨石坑', '恐龙'], a: '小行星是太阳系形成初期的岩石残骸，主要集中在火星与木星之间的小行星带。约6600万年前，一颗小行星撞击地球，被认为是恐龙灭绝的主因。' },
-    { k: ['时间线', '宇宙历史', '编年史', '热寂'], a: '如果把138亿年的宇宙历史压缩成一年，大爆炸在1月1日，银河系3月成形，太阳系9月诞生，恐龙12月30日灭绝，而全部人类文明只出现在12月31日晚上11点59分的最后几十秒。' },
-    { k: ['你好', 'hi', 'hello', '在吗'], a: '你好呀！我是天文小助手，可以聊聊黑洞、恒星、行星、星系、星座、宇宙起源等等，有什么想了解的天文知识吗？✨' },
-    { k: ['谢谢', '感谢'], a: '不客气！探索宇宙的路上，随时回来找我聊天 🌌' }
-];
-
-function pickReply(msg) {
-    const q = msg.toLowerCase();
-    let best = null, bestScore = 0;
-    for (const item of KNOWLEDGE) {
-        let score = 0;
-        for (const kw of item.k) {
-            if (q.includes(kw.toLowerCase())) score += kw.length;
-        }
-        if (score > bestScore) { bestScore = score; best = item; }
-    }
-    if (best) return best.a;
-    return '这个问题我还在学习中 🤔 你可以试试问我：黑洞、太阳系、恒星、光年、星座、银河系、超新星、暗物质、登月、哈勃、日食、流星雨、彗星……或者直接告诉我你想了解的天文话题。';
-}
-
-// 可选：真实 LLM 接入（OpenAI 兼容接口，如 DeepSeek / 通义 / Kimi）
-// 配置 AI_API_KEY 后自动启用；未配置时使用下方内置知识库
 function llmEnabled() {
     return !!(config.ai && config.ai.apiKey);
 }
 
-async function llmReply(msg) {
+/* ---------- 多轮会话（内存态，30 分钟闲置过期，保留最近 8 轮） ---------- */
+const sessions = new Map();
+const SESSION_TTL = 30 * 60 * 1000;
+
+function getSession(sid) {
+    if (!sid) return null;
+    const s = sessions.get(sid);
+    if (!s) return null;
+    if (Date.now() - s.ts > SESSION_TTL) { sessions.delete(sid); return null; }
+    return s;
+}
+
+function pushTurn(sid, role, content) {
+    let s = getSession(sid);
+    if (!s) { s = { msgs: [], ts: 0 }; sessions.set(sid, s); }
+    s.msgs.push({ role, content });
+    if (s.msgs.length > 16) s.msgs = s.msgs.slice(-16);
+    s.ts = Date.now();
+}
+
+/* ---------- 大模型调用（OpenAI 兼容接口） ---------- */
+async function llmChat(messages, maxTokens = 500) {
     if (!llmEnabled()) return null;
     const { apiKey, baseUrl, model } = config.ai;
     try {
         const r = await fetch(baseUrl.replace(/\/+$/, '') + '/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
-            body: JSON.stringify({
-                model,
-                messages: [
-                    { role: 'system', content: '你是一个天文科普助手，用简洁通俗的中文回答天文问题，控制在 200 字以内。' },
-                    { role: 'user', content: msg }
-                ],
-                max_tokens: 400,
-                temperature: 0.7
-            }),
-            signal: AbortSignal.timeout(12000)
+            body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature: 0.6 }),
+            signal: AbortSignal.timeout(15000)
         });
         if (!r.ok) return null;
         const j = await r.json();
@@ -77,10 +48,98 @@ async function llmReply(msg) {
     }
 }
 
-async function reply(msg) {
-    const llm = await llmReply(msg);
-    if (llm) return llm;
-    return pickReply(msg);
+const SYSTEM_PROMPT =
+    '你是"星语"，一个天文科普问答助手。规则：\n' +
+    '1. 优先依据【资料】段落回答，不要编造资料中没有的数据；\n' +
+    '2. 回答中引用资料时使用角标【1】【2】，对应资料编号；\n' +
+    '3. 语言简洁通俗，控制在 220 字以内；\n' +
+    '4. 用户的问题若与天文无关，礼貌引导回天文话题。';
+
+/* 解析回答中的角标，映射为可点击的来源列表 */
+function parseCitations(reply, sources) {
+    const used = new Set();
+    const text = String(reply).replace(/【(\d+)】/g, (_, n) => {
+        const i = Number(n) - 1;
+        if (sources[i]) { used.add(i); return ''; }
+        return '';
+    }).trim();
+    return { text, sources: [...used].sort((a, b) => a - b).map(i => sources[i]) };
 }
 
-module.exports = { reply, usingLLM: llmEnabled };
+/* ---------- 降级回答：直接组装检索资料 ---------- */
+function composeFromChunks(chunks, _query) {
+    const top = chunks.slice(0, 2);
+    const body = top.map((c, i) => `【${i + 1}】${c.text}`).join('\n\n');
+    return `根据站内天文资料：\n${body}\n\n—— 以上来自站内知识库（当前为离线模式，可配置 AI_API_KEY 启用大模型深度回答）。`;
+}
+
+/* ---------- 主流程 ---------- */
+async function reply(message, sessionId) {
+    const q = String(message || '').trim().slice(0, 200);
+    if (!q) return { ok: false, reply: '请输入你想问的天文问题～', sources: [] };
+
+    const history = getSession(sessionId)?.msgs || [];
+
+    // 1) 工具调用（月相 / 今夜观星 / 页面导航）
+    const { results: toolResults, action } = runTools(q);
+
+    // 2) RAG 检索站内知识库
+    const chunks = await search(q, 4);
+    const sources = chunks.map(c => ({ title: c.title, route: c.route }));
+
+    let answer = null;
+    const toolNote = toolResults.length ? '【工具计算结果】\n' + toolResults.join('\n') + '\n\n' : '';
+
+    if (llmEnabled()) {
+        const ctx = chunks.length
+            ? '【资料】\n' + chunks.map((c, i) => `【${i + 1}】${c.title}：${c.text}`).join('\n') + '\n\n'
+            : '';
+        const messages = [
+            { role: 'system', content: SYSTEM_PROMPT },
+            ...history.slice(-8),
+            { role: 'user', content: toolNote + ctx + q }
+        ];
+        answer = await llmChat(messages);
+    }
+
+    let mode = llmEnabled() ? 'llm' : 'rag-local';
+    let usedSources = sources;
+
+    if (!answer) {
+        // 降级：工具结果 + 检索资料直出
+        if (toolResults.length && !chunks.length) {
+            answer = toolNote.trim();
+        } else if (chunks.length) {
+            answer = toolNote + composeFromChunks(chunks, q);
+        } else if (toolResults.length) {
+            answer = toolNote.trim();
+        } else {
+            answer = '这个问题超出了站内知识库的范围 🤔 可以试试问我：今晚能看到什么星座、月相、黑洞、木星、猎户座、光年、超新星……或者点击推荐问题开始探索。';
+        }
+        usedSources = sources;
+    } else {
+        const parsed = parseCitations(answer, sources);
+        answer = (toolNote.trim() ? toolNote + parsed.text : parsed.text) || answer;
+        usedSources = parsed.sources.length ? parsed.sources : sources;
+    }
+
+    // 记录会话
+    if (sessionId) {
+        pushTurn(sessionId, 'user', q);
+        pushTurn(sessionId, 'assistant', answer.slice(0, 2000));
+    }
+
+    return {
+        ok: true,
+        reply: answer,
+        mode,
+        action,
+        sources: usedSources.slice(0, 4),
+        stats: kbStats(),
+        vector: embeddingsReady()
+    };
+}
+
+function usingLLM() { return llmEnabled(); }
+
+module.exports = { reply, usingLLM };
