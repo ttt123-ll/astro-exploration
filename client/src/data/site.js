@@ -1,4 +1,5 @@
 // 站点级共享数据：导航 / 首页特性 / 冷知识 / 资讯
+// AI 助手不放在普通导航项里，而是作为独立的入口显示在导航栏右侧（见 NavBar.vue）
 export const navLinks = [
     { label: '首页', path: '/' },
     { label: '天文百科', path: '/encyclopedia' },
@@ -6,7 +7,6 @@ export const navLinks = [
     { label: '星空图集', path: '/gallery' },
     { label: '宇宙时间线', path: '/timeline' },
     { label: '近地天体', path: '/neo' },
-    { label: 'AI 助手', path: '/assistant' },
     { label: '宇宙新闻', path: '/news' },
     { label: '互动社区', path: '/community' }
 ];
