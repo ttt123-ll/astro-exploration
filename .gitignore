@@ -45,3 +45,5 @@ desktop.ini
 
 # 自动生成的提交记录页面
 git-history.html
+client/*.timestamp-*.mjs
+*.zip
