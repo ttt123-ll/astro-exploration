@@ -45,6 +45,12 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
                 <li v-for="n in navLinks" :key="n.path">
                     <router-link :to="n.path" :class="{ active: isActive(n.path) }" @click="menuOpen = false">{{ n.label }}</router-link>
                 </li>
+                <!-- 移动端：AI 助手入口（桌面端单列在右侧） -->
+                <li class="nav-mobile-ai">
+                    <router-link to="/assistant" class="nav-mobile-ai-link" @click="menuOpen = false">
+                        <i class="fas fa-wand-magic-sparkles"></i> 星语 AI 天文助手
+                    </router-link>
+                </li>
                 <!-- 移动端：登录/注册入口（桌面端在右侧 nav-actions 中） -->
                 <li class="nav-mobile-auth">
                     <template v-if="auth.loggedIn">
@@ -74,6 +80,12 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
                     <router-link to="/login" class="nav-auth-link">登录</router-link>
                     <router-link to="/register" class="nav-auth-link nav-auth-primary">注册</router-link>
                 </div>
+                <!-- AI 助手：单独一栏的独立入口 -->
+                <router-link to="/assistant" class="nav-ai-btn" :class="{ active: isActive('/assistant') }"
+                             title="星语 AI 天文助手">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                    <span>AI 助手</span>
+                </router-link>
                 <button class="search-open-btn" title="全站搜索（快捷键 / ）" aria-label="全站搜索" @click="ui.openSearch()"><i class="fas fa-magnifying-glass"></i></button>
                 <button class="menu-toggle" :class="{ open: menuOpen }" :aria-expanded="menuOpen" aria-label="展开导航菜单"
                         @click="menuOpen = !menuOpen">
