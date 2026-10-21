@@ -45,6 +45,18 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
                 <li v-for="n in navLinks" :key="n.path">
                     <router-link :to="n.path" :class="{ active: isActive(n.path) }" @click="menuOpen = false">{{ n.label }}</router-link>
                 </li>
+                <!-- 移动端：登录/注册入口（桌面端在右侧 nav-actions 中） -->
+                <li class="nav-mobile-auth">
+                    <template v-if="auth.loggedIn">
+                        <span class="nav-user"><i class="fas fa-user-astronaut"></i> {{ auth.user.username }}</span>
+                        <router-link v-if="auth.isAdmin" to="/admin" @click="menuOpen = false">后台管理</router-link>
+                        <a href="#" @click.prevent="logout(); menuOpen = false">退出登录</a>
+                    </template>
+                    <template v-else>
+                        <router-link to="/login" @click="menuOpen = false">登录</router-link>
+                        <router-link to="/register" class="nav-mobile-primary" @click="menuOpen = false">注册</router-link>
+                    </template>
+                </li>
             </ul>
             <div class="nav-actions">
                 <div class="nav-auth-slot" v-if="auth.loggedIn">

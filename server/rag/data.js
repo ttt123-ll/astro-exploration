@@ -3,6 +3,7 @@
 // 数据来源全部为站内自建内容（planets / constellations / content / timeline），无外部依赖
 const path = require('path');
 const fs = require('fs');
+const FAQ = require('./faq');
 
 const DATA_DIR = path.join(__dirname, '..', '..', 'client', 'src', 'data');
 
@@ -109,6 +110,11 @@ function buildChunks() {
             '/timeline',
             [e.title, e.time, '时间线', '宇宙历史']
         );
+    }
+
+    // 5. 常见概念 FAQ（补充高频提问，如光年/引力波/星等）
+    for (const item of FAQ) {
+        add(item.title, item.text, item.route, item.tags);
     }
 
     return chunks;

@@ -1,9 +1,11 @@
-// AI 天文问答编排：工具调用 → RAG 检索 → 大模型生成 → 本地降级回答
-// 降级策略（无 API key / 断网 / 超时）：直接基于检索到的站内资料作答，离线可演示
+// AI 问答编排升级：三级降级（LLM → 本地 RAG → 兜底）、工具调用、角标溯源
 const config = require('./config');
-const { search, embeddingsReady } = require('./rag/search');
+const { search, vectorMode } = require('./rag/search');
 const { runTools } = require('./rag/tools');
 const { kbStats } = require('./rag/data');
+
+/* 相关性门槛：最高分低于该值时视为「知识库无命中」，走第 3 级兜底引导 */
+const MIN_RELEVANCE = 0.26;
 
 function llmEnabled() {
     return !!(config.ai && config.ai.apiKey);
@@ -66,30 +68,41 @@ function parseCitations(reply, sources) {
     return { text, sources: [...used].sort((a, b) => a - b).map(i => sources[i]) };
 }
 
-/* ---------- 降级回答：直接组装检索资料 ---------- */
-function composeFromChunks(chunks, _query) {
-    const top = chunks.slice(0, 2);
-    const body = top.map((c, i) => `【${i + 1}】${c.text}`).join('\n\n');
-    return `根据站内天文资料：\n${body}\n\n—— 以上来自站内知识库（当前为离线模式，可配置 AI_API_KEY 启用大模型深度回答）。`;
+/* ---------- 第 2 级降级：直接组装检索资料（带角标，可溯源） ---------- */
+function composeFromChunks(chunks) {
+    const top = chunks.slice(0, 3);
+    const body = top.map((c, i) => `【${i + 1}】${c.text}`).join('\n');
+    return `根据站内天文资料：\n${body}\n（以上为本地知识库原文摘录，角标对应下方来源）`;
 }
+
+/* 第 3 级降级：知识库无命中时的引导语 */
+const FALLBACK_REPLY =
+    '这个问题超出了站内知识库的范围 🤔 可以试试问我：今晚能看到什么星座、现在的月相适合观星吗、' +
+    '黑洞是怎么形成的、木星有多大、光年是什么单位——或者点下面的推荐问题开始探索。';
+
+const SUGGESTIONS = ['今晚能看到什么星座？', '现在的月相适合观星吗？', '黑洞是怎么形成的？', '带我去看木星'];
 
 /* ---------- 主流程 ---------- */
 async function reply(message, sessionId) {
     const q = String(message || '').trim().slice(0, 200);
-    if (!q) return { ok: false, reply: '请输入你想问的天文问题～', sources: [] };
+    if (!q) return { ok: false, reply: '请输入你想问的天文问题～', sources: [], level: 3 };
 
     const history = getSession(sessionId)?.msgs || [];
 
-    // 1) 工具调用（月相 / 今夜观星 / 页面导航）
-    const { results: toolResults, action } = runTools(q);
+    // 1) 工具调用（月相 / 今夜观星 / 页面导航）——「哇」时刻都在这一层，不依赖大模型
+    const { results: toolResults, action, tools } = runTools(q);
+    const toolNote = toolResults.length ? toolResults.join('\n') : '';
 
-    // 2) RAG 检索站内知识库
-    const chunks = await search(q, 4);
-    const sources = chunks.map(c => ({ title: c.title, route: c.route }));
+    // 2) RAG 检索站内知识库（词法 + 向量混合）
+    const rawChunks = await search(q, 4);
+    // 只保留与问题足够相关的片段；全部不相关时交给第 3 级兜底
+    const chunks = rawChunks.filter(c => (c._score || 0) >= MIN_RELEVANCE);
+    const sources = chunks.map(c => ({ title: c.title, route: c.route, score: c._score }));
 
     let answer = null;
-    const toolNote = toolResults.length ? '【工具计算结果】\n' + toolResults.join('\n') + '\n\n' : '';
+    let level = 2;
 
+    // 第 1 级：大模型（配置了 AI_API_KEY 时）
     if (llmEnabled()) {
         const ctx = chunks.length
             ? '【资料】\n' + chunks.map((c, i) => `【${i + 1}】${c.title}：${c.text}`).join('\n') + '\n\n'
@@ -97,30 +110,36 @@ async function reply(message, sessionId) {
         const messages = [
             { role: 'system', content: SYSTEM_PROMPT },
             ...history.slice(-8),
-            { role: 'user', content: toolNote + ctx + q }
+            { role: 'user', content: (toolNote ? '【工具计算结果】\n' + toolNote + '\n\n' : '') + ctx + q }
         ];
         answer = await llmChat(messages);
+        if (answer) level = 1;
     }
 
-    let mode = llmEnabled() ? 'llm' : 'rag-local';
     let usedSources = sources;
 
-    if (!answer) {
-        // 降级：工具结果 + 检索资料直出
-        if (toolResults.length && !chunks.length) {
-            answer = toolNote.trim();
-        } else if (chunks.length) {
-            answer = toolNote + composeFromChunks(chunks, q);
-        } else if (toolResults.length) {
-            answer = toolNote.trim();
-        } else {
-            answer = '这个问题超出了站内知识库的范围 🤔 可以试试问我：今晚能看到什么星座、月相、黑洞、木星、猎户座、光年、超新星……或者点击推荐问题开始探索。';
-        }
-        usedSources = sources;
-    } else {
+    if (level === 1 && answer) {
+        // 第 1 级成功：保留工具结论 + 模型回答，角标映射为来源
         const parsed = parseCitations(answer, sources);
-        answer = (toolNote.trim() ? toolNote + parsed.text : parsed.text) || answer;
+        answer = toolNote ? toolNote + '\n' + parsed.text : parsed.text;
         usedSources = parsed.sources.length ? parsed.sources : sources;
+    } else {
+        // 第 2 级：工具结论 + 知识库原文（本地抽取式回答）
+        if (toolNote && chunks.length) {
+            answer = toolNote + '\n\n' + composeFromChunks(chunks);
+            level = 2;
+        } else if (toolNote) {
+            answer = toolNote;
+            level = 2;
+        } else if (chunks.length) {
+            answer = composeFromChunks(chunks);
+            level = 2;
+        } else {
+            // 第 3 级：兜底引导
+            answer = FALLBACK_REPLY;
+            usedSources = [];
+            level = 3;
+        }
     }
 
     // 记录会话
@@ -129,14 +148,20 @@ async function reply(message, sessionId) {
         pushTurn(sessionId, 'assistant', answer.slice(0, 2000));
     }
 
+    const modeMap = { 1: 'llm', 2: 'rag-local', 3: 'fallback' };
+
     return {
         ok: true,
         reply: answer,
-        mode,
+        mode: modeMap[level],
+        level,
+        levelLabel: level === 1 ? '大模型生成' : level === 2 ? '本地知识库检索' : '超出知识库范围',
+        tools: tools || [],
+        vector: vectorMode(),
         action,
         sources: usedSources.slice(0, 4),
-        stats: kbStats(),
-        vector: embeddingsReady()
+        suggestions: level === 3 ? SUGGESTIONS : [],
+        stats: kbStats()
     };
 }
 
