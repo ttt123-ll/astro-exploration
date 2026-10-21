@@ -167,4 +167,9 @@ function embeddingsReady() {
     return !!config.embed.enabled || true;
 }
 
-module.exports = { search, embeddingsReady, vectorMode };
+/** 向量库状态（供 /api/chat/mode 展示与答辩讲解） */
+function indexStats() {
+    return localVector.stats(getChunks());
+}
+
+module.exports = { search, embeddingsReady, vectorMode, indexStats };

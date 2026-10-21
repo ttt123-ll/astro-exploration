@@ -2,7 +2,7 @@
 const express = require('express');
 const { reply, usingLLM } = require('../chat');
 const { kbStats } = require('../rag/data');
-const { vectorMode } = require('../rag/search');
+const { vectorMode, indexStats } = require('../rag/search');
 const wrap = require('../asyncRoute');
 
 const router = express.Router();
@@ -18,6 +18,7 @@ router.get('/chat/mode', (req, res) => {
             { level: 3, name: '兜底引导', available: true, note: '无命中时给出推荐问题' }
         ],
         vector: vectorMode(),                  // 'api' | 'local'
+        index: indexStats(),                   // 向量库：维度 / 知识块数 / 来源(disk|built) / 文件大小
         kb: kbStats()
     });
 });

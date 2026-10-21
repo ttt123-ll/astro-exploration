@@ -48,6 +48,8 @@ COPY server/ ./server/
 COPY --from=client-build /app/client/dist ./client/dist
 # RAG 知识库需要读取前端数据文件（planets/constellations/content/timeline）
 COPY --from=client-build /app/client/src/data ./client/src/data
+# 构建期预生成本地向量索引（离线 RAG 用，避免首次请求重建）
+RUN node server/rag/build-index.js
 
 # 非 root 运行
 RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
