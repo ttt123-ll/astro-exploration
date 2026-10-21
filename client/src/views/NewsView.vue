@@ -8,6 +8,22 @@ import PageHeader from '../components/PageHeader.vue';
 
 const rows = ref([]);
 const tags = ref([]);
+
+/* 各主题分类的专属配色（用于筛选 chip 与文章角标，避免全站同一个紫色） */
+const TAG_COLORS = {
+    '深空探测': '#7c9cf5',
+    '天象与观测': '#5fd3c4',
+    '行星科学': '#e8a06e',
+    '恒星与银河': '#e8c46e',
+    '黑洞与引力波': '#b78af0',
+    '空间望远镜': '#6ec8a8',
+    '中国航天': '#f0736e',
+    '太阳与空间天气': '#f5b942',
+    '载人航天': '#8fd3e8'
+};
+function tagColor(name) {
+    return TAG_COLORS[name] || 'var(--color-primary)';
+}
 const total = ref(0);
 const matched = ref(0);
 const loading = ref(false);
@@ -209,7 +225,10 @@ onBeforeUnmount(stopAuto);
                     <button class="filter-tab" :class="{ active: active === 'all' }" @click="pickTag('all')">
                         全部 <span class="tab-num">{{ total }}</span>
                     </button>
-                    <button v-for="t in tags" :key="t.tag" class="filter-tab" :class="{ active: active === t.tag }" @click="pickTag(t.tag)">
+                    <button v-for="t in tags" :key="t.tag" class="filter-tab filter-tab-tag"
+                            :class="{ active: active === t.tag }"
+                            :style="{ '--tag-color': tagColor(t.tag) }"
+                            @click="pickTag(t.tag)">
                         {{ t.tag }} <span class="tab-num">{{ t.c }}</span>
                     </button>
                 </div>
@@ -251,7 +270,7 @@ onBeforeUnmount(stopAuto);
 
         <!-- 头条 -->
         <article v-if="head" class="news-head" v-reveal>
-            <div class="news-head-img"><img :src="head.img" :alt="head.title"><span class="news-tag">{{ head.tag }}</span></div>
+            <div class="news-head-img"><img :src="head.img" :alt="head.title"><span class="news-tag" :style="{ '--tag-color': tagColor(head.tag) }">{{ head.tag }}</span></div>
             <div class="news-head-body">
                 <span class="news-date"><i class="fas fa-clock"></i> {{ relTime(head.published_at) }}<em v-if="head.source"> · {{ head.source }}</em></span>
                 <h2>{{ head.title }}</h2>
@@ -289,6 +308,12 @@ onBeforeUnmount(stopAuto);
 </template>
 
 <style scoped>
+.news-tag {
+    color: var(--tag-color, var(--color-gold));
+    border-color: color-mix(in srgb, var(--tag-color, var(--color-gold)) 55%, transparent);
+    background: color-mix(in srgb, var(--tag-color, var(--color-gold)) 14%, transparent);
+}
+
 .tab-num { font-size: 0.72rem; opacity: 0.7; margin-left: 0.2rem; }
 
 /* 实时状态条 */
@@ -385,6 +410,26 @@ onBeforeUnmount(stopAuto);
     font-family: inherit;
 }
 .filter-tab:hover { border-color: var(--color-cyan); color: #fff; }
+
+/* 主题分类 chip：每个分类有自己的颜色 */
+.filter-tab-tag {
+    border-color: color-mix(in srgb, var(--tag-color) 45%, transparent);
+    color: color-mix(in srgb, var(--tag-color) 78%, #dfe6f5);
+    background: color-mix(in srgb, var(--tag-color) 7%, transparent);
+}
+.filter-tab-tag:hover {
+    border-color: var(--tag-color);
+    color: var(--tag-color);
+    background: color-mix(in srgb, var(--tag-color) 12%, transparent);
+}
+.filter-tab-tag.active {
+    background: var(--tag-color);
+    border-color: var(--tag-color);
+    color: #0a0d18;
+    font-weight: 600;
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--tag-color) 35%, transparent);
+}
+.filter-tab-tag.active .tab-num { color: rgba(10, 13, 24, 0.7); }
 .filter-tab.active { background: var(--gradient-primary); border-color: transparent; color: #fff; }
 .filter-reset {
     padding: 0.32rem 0.95rem; border-radius: 50px; font-size: 0.8rem; cursor: pointer;

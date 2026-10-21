@@ -443,6 +443,7 @@ chore: 构建/工具  perf: 性能优化
 | `tools/verify-chat.js` | AI 问答：三级降级、工具调用、混合检索、溯源与多轮会话 | 37 |
 | `tools/verify-ai-ui.js` | AI 助手界面：角标溯源、级别/工具徽标、兜底推荐、自动跳转 | 20 |
 | `tools/verify-mobile.js` | 移动端（iPhone 12 / 360px / iPad）：横向溢出、汉堡菜单、关键页可用性 | 90 |
+| `tools/verify-images.js` | 图片资源完整性：无缺失、无水印文字、尺寸合理 | 8 |
 
 ```bash
 npm run test:all                # API + 前端回归
@@ -556,7 +557,9 @@ Windows 下双击 **`查看提交记录.bat`** 可一键生成并在浏览器打
 ## 十四、许可证与素材声明
 
 - 代码：[MIT License](LICENSE)
-- 天文图片、科普视频来自 **NASA / ESA / STScI** 等机构公开资源
+- 天文图片全部取自 **NASA 官方图库**（images-api.nasa.gov，公有领域），已逐张替换为真实望远镜/探测器影像，统一压缩至 1600px 内
+- 科普视频来自 **NASA / ESA / STScI** 等机构公开资源
+- 四季星座卡片的星空背景为**程序生成的示意图**（CSS/NumPy 生成，非实拍），星座连线为真实亮星坐标绘制
 - 行星球面贴图来自 **SolarSystemScope（CC BY 4.0）**
 - 图标字体来自 **Font Awesome Free**（图标 CC BY 4.0 / 字体 SIL OFL 1.1）
 - 完整素材与授权清单：[`docs/素材与授权清单.md`](docs/素材与授权清单.md)
