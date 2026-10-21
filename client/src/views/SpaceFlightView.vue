@@ -515,6 +515,13 @@ function animate(t) {
         yaw = lerpAngle(warp.yawFrom, warp.yawTo, e);
         pitch = warp.pitchFrom + (warp.pitchTo - warp.pitchFrom) * e;
 
+        // 兜底：插值结果异常（NaN）时直接落到目标点，避免相机失效导致全黑
+        if (!Number.isFinite(camPos.x) || !Number.isFinite(camPos.y) || !Number.isFinite(camPos.z)) {
+            camPos.copy(warp.to);
+            yaw = warp.yawTo;
+            pitch = warp.pitchTo;
+        }
+
         const intensity = Math.pow(Math.max(0, Math.sin(Math.PI * k)), 0.7);
         updateWarpLines(dt, intensity);
         const wSpeed = (warp.from.distanceTo(warp.to) / warp.dur) / 10;
@@ -523,10 +530,15 @@ function animate(t) {
         if (k >= 1) {
             warp = null;
             warping.value = false;
-            warpGroup.visible = false;
-            warpMat.opacity = 0;
+            if (warpGroup) warpGroup.visible = false;
+            if (warpMat) warpMat.opacity = 0;
         }
     } else {
+        // 兜底：没有跃迁任务却残留了跃迁特效（切换标签页/掉帧时可能出现），强制清掉，
+        // 否则会一直显示放射状条纹遮住画面，看起来像"卡死"
+        if (warping.value) warping.value = false;
+        if (warpGroup && warpGroup.visible) { warpGroup.visible = false; if (warpMat) warpMat.opacity = 0; }
+
         // 转向
         if (keys['a'] || keys['arrowleft']) yaw += 1.5 * dt;
         if (keys['d'] || keys['arrowright']) yaw -= 1.5 * dt;
@@ -639,6 +651,8 @@ function animate(t) {
 /* ===================== 交互 ===================== */
 function onKey(e, down) {
     const k = e.key.toLowerCase();
+    // R 键：一键复位到初始视角（清理跃迁残留、关闭信息面板）
+    if (k === 'r' && down) { resetAll(); return; }
     keys[k] = down;
     if (['w', 'a', 's', 'd', 'q', 'e', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) e.preventDefault();
 }
@@ -740,6 +754,9 @@ function jump(bodyKey) {
 
     const dist = camPos.distanceTo(to);
     if (dist < 400) {
+        // 距离很近时直接落到目标点：同时清掉可能残留的跃迁特效，避免遮罩卡住
+        clearWarpFx();
+        warp = null;
         camPos.copy(to); yaw = yawTo; pitch = pitchTo;
         if (camera) { camera.position.copy(camPos); camera.rotation.y = yaw; camera.rotation.x = pitch; }
         return;
@@ -755,7 +772,44 @@ function jump(bodyKey) {
     warping.value = true;
     focusKey = b.key;
 }
-function reset() { jump('earth'); }
+
+/* 清掉跃迁相关的所有视觉状态（遮罩 / 光速线 / 动画任务） */
+function clearWarpFx() {
+    warp = null;
+    warping.value = false;
+    if (warpGroup) warpGroup.visible = false;
+    if (warpMat) warpMat.opacity = 0;
+}
+
+/* 彻底复位：清空面板、跃迁、模拟时间与相机，回到刚进入 3D 时的状态 */
+function resetAll() {
+    clearWarpFx();
+    selected.value = null;
+    focusKey = null;
+    if (typeof keys === 'object') Object.keys(keys).forEach(k => { keys[k] = false; });
+    thrust = 0;
+    turn = 0;
+    vel.set(0, 0, 0);
+    simDays = 0;
+    distPct.value = 22;
+    timePct.value = 8;
+    computePositions();
+    buildBeltMatrices();
+    rebuildOrbitRings();
+    camPos.set(2200, 400, 2600);
+    yaw = 0;
+    pitch = 0;
+    if (camera) {
+        camera.position.copy(camPos);
+        camera.rotation.y = yaw;
+        camera.rotation.x = pitch;
+        camera.updateMatrixWorld();
+    }
+    simLabel.value = '0.0 年';
+    speedText.value = '0.0 km/s';
+}
+
+function reset() { resetAll(); }
 
 function onDistChange() {
     // 距离比例变化会让轨道半径整体缩放，小行星带需要同步重建
@@ -869,7 +923,7 @@ onBeforeUnmount(() => {
             <div class="hud-row"><span class="k">模拟经过</span><span class="v small">{{ simLabel }}</span></div>
         </div>
 
-        <div class="hud-hint">拖拽环视 · <b>点击天体飞掠过去</b> · W/S 加速减速 · A/D 转向 · Q/E 俯仰</div>
+        <div class="hud-hint">拖拽环视 · <b>点击天体飞掠过去</b> · W/S 加速减速 · A/D 转向 · Q/E 俯仰 · <b>R 复位</b></div>
 
         <div class="flight-ctl">
             <div class="ctl-group">

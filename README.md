@@ -418,6 +418,7 @@ chore: 构建/工具  perf: 性能优化
 | `tools/verify-404-auth.js` | 404 星际漂流页、登录注册星云与玻璃卡片 | 13 |
 | `tools/verify-3d-neo.js` | 小行星带、行星标签、点击飞掠面板、NEO 页与接口 | 25 |
 | `tools/verify-3d-render.js` | 3D 画布实际渲染（默认与 ?nolog=1 兜底模式） | 5 |
+| `tools/verify-3d-recover.js` | 飞掠后遮罩复位、复位按钮与 R 键恢复视角 | 12 |
 
 ```bash
 npm run test:all                # API + 前端回归
