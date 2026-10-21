@@ -140,14 +140,11 @@ async function api(method, p, body) {
         git('update-ref', 'refs/remotes/origin/' + BRANCH, commit.sha);
         console.log('✓ 本地与远程 SHA 完全一致: ' + commit.sha.slice(0, 7));
     } else {
-        // 多提交合并场景：用同一个 tree 在本地重建等价提交，保持内容一致
+        // 远程 SHA 与本地不同（API 通道生成），只要 tree 相同即内容一致
         const localTree = git('rev-parse', 'HEAD^{tree}');
         if (localTree === tree.sha) {
-            const rebuilt = execFileSync('git', ['commit-tree', tree.sha, '-p', remoteSha, '-m', message],
-                { cwd: REPO_DIR, encoding: 'utf8' }).trim();
-            git('update-ref', 'refs/heads/' + BRANCH, rebuilt);
-            git('update-ref', 'refs/remotes/origin/' + BRANCH, commit.sha);
-            console.log('✓ 本地已重建等价提交: ' + rebuilt.slice(0, 7) + '（内容与远程 tree 一致）');
+            console.log('✓ 内容已同步：远程 tree 与本地 tree 相同 (' + tree.sha.slice(0, 7) + ')');
+            console.log('  （SHA 不同是因为走 Git Data API；联网后 git fetch && git reset --hard origin/main 即可对齐）');
         } else {
             console.log('⚠ 本地 tree 与远程 tree 不同，请联网后执行 git fetch && git reset --hard origin/main');
         }
