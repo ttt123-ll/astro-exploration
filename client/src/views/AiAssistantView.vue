@@ -34,7 +34,98 @@ async function loadMode() {
     } catch (e) { /* 接口不可用时保持默认展示 */ }
 }
 const vectorLabel = computed(() => vector.value === 'api' ? '语义向量' : '本地向量');
+
+/* ===================== 受众模式：同样的内容，不同的讲法 ===================== */
+const AUDIENCES = [
+    { key: 'child', label: '儿童', icon: 'fa-child-reaching', desc: '比喻、短句、少术语' },
+    { key: 'amateur', label: '业余爱好者', icon: 'fa-binoculars', desc: '结论 + 参数与理由' },
+    { key: 'pro', label: '专业人士', icon: 'fa-microscope', desc: '规格、权衡与工程细节' }
+];
+const audience = ref('amateur');
+try {
+    const saved = localStorage.getItem('ai_audience');
+    if (['child', 'amateur', 'pro'].includes(saved)) audience.value = saved;
+} catch (e) { /* 隐私模式忽略 */ }
+function pickAudience(key) {
+    audience.value = key;
+    try { localStorage.setItem('ai_audience', key); } catch (e) { /* 忽略 */ }
+}
+const audienceLabel = computed(() => (AUDIENCES.find(a => a.key === audience.value) || AUDIENCES[1]).label);
+
+/* ===================== 装备导购面板 ===================== */
+const gearOpen = ref(false);
+const gearLoading = ref(false);
+const gearBudgets = ref([
+    { max: 1000, label: '1000 元以内' },
+    { max: 3000, label: '1000–3000 元' },
+    { max: 6000, label: '3000–6000 元' },
+    { max: 12000, label: '6000–12000 元' },
+    { max: 30000, label: '12000–30000 元' }
+]);
+const gearPurposes = ref([
+    { key: 'kid', label: '儿童入门', icon: 'fa-child' },
+    { key: 'moon', label: '看月亮', icon: 'fa-moon' },
+    { key: 'planet', label: '看行星', icon: 'fa-circle' },
+    { key: 'visual', label: '目视深空', icon: 'fa-star' },
+    { key: 'ap', label: '深空摄影', icon: 'fa-camera' },
+    { key: 'wide', label: '星野银河', icon: 'fa-mountain-sun' },
+    { key: 'planet-photo', label: '行星摄影', icon: 'fa-video' },
+    { key: 'travel', label: '便携出行', icon: 'fa-suitcase' }
+]);
+const budgetText = ref('3000');
+const pickedPurposes = ref(['moon']);
+
+function togglePurpose(key) {
+    const i = pickedPurposes.value.indexOf(key);
+    if (i >= 0) pickedPurposes.value.splice(i, 1);
+    else pickedPurposes.value.push(key);
+}
+
+async function loadGearMeta() {
+    try {
+        const { data } = await api.get('/chat/audiences');
+        if (Array.isArray(data.purposes) && data.purposes.length) gearPurposes.value = data.purposes;
+        if (Array.isArray(data.budgets) && data.budgets.length) {
+            gearBudgets.value = data.budgets.filter(b => Number.isFinite(b.max)).map(b => ({ max: b.max, label: b.label }));
+        }
+    } catch (e) { /* 用内置默认值 */ }
+}
+
+async function submitGear() {
+    if (gearLoading.value) return;
+    gearLoading.value = true;
+    const priorities = pickedPurposes.value.slice();
+    const question = `预算 ${budgetText.value}，用途：${priorities.map(k => (gearPurposes.value.find(p => p.key === k) || {}).label || k).join('、') || '看月亮'}`;
+    messages.value.push({ role: 'user', text: question });
+    scrollBottom();
+    try {
+        const { data } = await api.post('/chat/gear', {
+            budget: budgetText.value,
+            priorities,
+            audience: audience.value
+        });
+        messages.value.push({
+            role: 'bot',
+            text: data.reply || '暂时没有合适的组合。',
+            sources: [],
+            suggestions: [],
+            level: 2,
+            levelLabel: '装备导购引擎',
+            tools: ['gear-advisor'],
+            gear: data.gear || null,
+            nav: null
+        });
+        gearOpen.value = false;
+    } catch (e) {
+        messages.value.push({ role: 'bot', text: '装备导购服务暂时不可用，请稍后再试。', sources: [], nav: null });
+    } finally {
+        gearLoading.value = false;
+        scrollBottom();
+    }
+}
+
 onMounted(loadMode);
+onMounted(loadGearMeta);
 
 /* ===================== 消息与发送 ===================== */
 const input = ref('');
@@ -42,7 +133,14 @@ const sending = ref(false);
 const messages = ref([]);
 const listEl = ref(null);
 
-const QUICK = ['今晚能看到什么星座？', '现在的月相适合观星吗？', '黑洞是怎么形成的？', '木星有多大？', '光年是什么单位？'];
+const QUICK = [
+    '今晚能看到什么星座？',
+    '现在的月相适合观星吗？',
+    '黑洞是怎么形成的？',
+    '预算 3000 想给孩子入门买望远镜，怎么选？',
+    '8000 预算拍深空，主镜和赤道仪怎么配？',
+    '80mm 和 130mm 口径差多少？'
+];
 
 function scrollBottom() {
     nextTick(() => { if (listEl.value) listEl.value.scrollTop = listEl.value.scrollHeight; });
@@ -79,7 +177,7 @@ async function send(text) {
     scrollBottom();
     sending.value = true;
     try {
-        const { data } = await api.post('/chat', { message: q, sessionId });
+        const { data } = await api.post('/chat', { message: q, sessionId, audience: audience.value });
         const botMsg = {
             role: 'bot',
             text: data.reply || '（没有收到回复）',
@@ -88,6 +186,7 @@ async function send(text) {
             level: data.level || 2,
             levelLabel: data.levelLabel || '',
             tools: Array.isArray(data.tools) ? data.tools : [],
+            gear: data.gear || null,
             nav: null
         };
         messages.value.push(botMsg);
@@ -125,6 +224,18 @@ async function send(text) {
             </span>
         </div>
 
+        <!-- 受众模式：同样的内容，不同的讲法 -->
+        <div class="ai-audience">
+            <span class="ai-audience-label"><i class="fas fa-users"></i> 回答对象</span>
+            <button v-for="a in AUDIENCES" :key="a.key" class="ai-audience-btn"
+                    :class="{ active: audience === a.key }" :title="a.desc"
+                    @click="pickAudience(a.key)">
+                <i class="fas" :class="a.icon"></i>
+                <span>{{ a.label }}</span>
+            </button>
+            <span class="ai-audience-hint">当前：{{ audienceLabel }}模式，回答的详略与用词会随之调整</span>
+        </div>
+
         <!-- 能力展示 -->
         <div class="ai-caps">
             <div class="ai-cap">
@@ -139,7 +250,46 @@ async function send(text) {
                 <i class="fas fa-location-arrow"></i>
                 <div><b>页面导航</b><span>一句话直达站内页面</span></div>
             </div>
+            <button class="ai-cap ai-cap-btn" :class="{ active: gearOpen }" @click="gearOpen = !gearOpen">
+                <i class="fas fa-binoculars"></i>
+                <div><b>装备导购</b><span>预算 + 用途 → 专业配置方案</span></div>
+            </button>
         </div>
+
+        <!-- 装备导购面板 -->
+        <transition name="gear">
+            <div v-if="gearOpen" class="ai-gear">
+                <div class="ag-head">
+                    <h4><i class="fas fa-binoculars"></i> 观测装备导购</h4>
+                    <button class="ag-close" @click="gearOpen = false" aria-label="关闭"><i class="fas fa-xmark"></i></button>
+                </div>
+                <div class="ag-row">
+                    <span class="ag-label">预算</span>
+                    <div class="ag-budgets">
+                        <button v-for="b in gearBudgets" :key="b.max" class="ag-chip"
+                                :class="{ active: budgetText === String(b.max) }" @click="budgetText = String(b.max)">
+                            {{ b.label }}
+                        </button>
+                        <input v-model="budgetText" class="ag-input" placeholder="或直接输入，如 8000" aria-label="预算">
+                    </div>
+                </div>
+                <div class="ag-row">
+                    <span class="ag-label">想做什么</span>
+                    <div class="ag-purposes">
+                        <button v-for="p in gearPurposes" :key="p.key" class="ag-chip"
+                                :class="{ active: pickedPurposes.includes(p.key) }" @click="togglePurpose(p.key)">
+                            <i class="fas" :class="p.icon"></i> {{ p.label }}
+                        </button>
+                    </div>
+                </div>
+                <div class="ag-foot">
+                    <span class="ag-tip"><i class="fas fa-circle-info"></i> 价格为参考区间，按「{{ audienceLabel }}」模式讲解</span>
+                    <button class="ag-submit" :disabled="gearLoading" @click="submitGear">
+                        {{ gearLoading ? '生成中…' : '生成配置方案' }}
+                    </button>
+                </div>
+            </div>
+        </transition>
 
         <!-- 聊天面板 -->
         <div class="ai-panel">
@@ -179,6 +329,35 @@ async function send(text) {
                             </span>
                         </div>
 
+                        <!-- 装备方案卡（结构化） -->
+                        <div v-if="m.gear && m.gear.plans && m.gear.plans.length" class="gear-card">
+                            <div class="gc-head">
+                                <i class="fas fa-binoculars"></i>
+                                <div>
+                                    <b>装备方案</b>
+                                    <span>预算 {{ m.gear.budgetMax }} 元 · {{ m.gear.tier ? m.gear.tier.label : '' }}</span>
+                                </div>
+                            </div>
+                            <div v-for="p in m.gear.plans" :key="p.id" class="gc-plan">
+                                <div class="gc-plan-head">
+                                    <b>{{ p.name }}</b>
+                                    <span class="gc-total">≈ {{ p.total }} 元</span>
+                                </div>
+                                <ul class="gc-items">
+                                    <li v-for="it in p.items" :key="it.role + it.id">
+                                        <span class="gc-role">{{ it.role }}</span>
+                                        <span class="gc-name">{{ it.name }}</span>
+                                        <em class="gc-price">{{ it.price }} 元</em>
+                                    </li>
+                                </ul>
+                                <div v-if="p.optics" class="gc-spec">
+                                    口径 {{ p.aperture }}mm · 焦比 f/{{ p.optics.ratio }} · 极限星等 {{ p.optics.limitMag }} · 分辨率 {{ p.optics.resolution }}″
+                                </div>
+                                <p class="gc-why">{{ p.why }}</p>
+                                <p v-if="p.upgrade" class="gc-up"><i class="fas fa-arrow-trend-up"></i> {{ p.upgrade }}</p>
+                            </div>
+                        </div>
+
                         <!-- 第 3 级兜底：给出可点的推荐问题 -->
                         <div v-if="m.role === 'bot' && m.suggestions && m.suggestions.length" class="ai-quick ai-quick-inline">
                             <button v-for="q in m.suggestions" :key="q" @click="send(q)">{{ q }}</button>
@@ -209,6 +388,10 @@ async function send(text) {
             <div class="ai-input-row">
                 <input v-model="input" type="text" placeholder="问一个天文问题，比如「今晚能看到什么星座？」…"
                        maxlength="200" :disabled="sending" @keydown.enter="send()">
+                <button class="ai-gear-btn" :class="{ active: gearOpen }" title="装备导购"
+                        @click="gearOpen = !gearOpen">
+                    <i class="fas fa-binoculars"></i>
+                </button>
                 <button class="ai-send" :disabled="sending || !input.trim()" @click="send()">
                     <i class="fas fa-paper-plane"></i>
                 </button>
@@ -218,6 +401,143 @@ async function send(text) {
 </template>
 
 <style scoped>
+/* ===== 受众模式选择器 ===== */
+.ai-audience {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin: 0 auto 0.9rem;
+}
+.ai-audience-label { font-size: 0.8rem; color: var(--color-text-muted); }
+.ai-audience-label i { color: var(--color-cyan); margin-right: 0.25rem; }
+.ai-audience-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 50px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(159, 212, 248, 0.25);
+    transition: all 0.25s ease;
+}
+.ai-audience-btn:hover { color: #fff; border-color: var(--color-cyan); }
+.ai-audience-btn.active {
+    color: #0a0d18;
+    font-weight: 600;
+    background: linear-gradient(135deg, #9fd8f0, #c4b5fd);
+    border-color: transparent;
+    box-shadow: 0 4px 16px rgba(159, 212, 248, 0.35);
+}
+.ai-audience-hint { font-size: 0.72rem; color: var(--color-text-muted); }
+
+/* ===== 装备导购面板 ===== */
+.ai-cap-btn { cursor: pointer; font-family: inherit; text-align: left; }
+.ai-cap-btn.active { border-color: var(--color-cyan); box-shadow: 0 0 20px rgba(159, 212, 248, 0.25); }
+
+.ai-gear {
+    margin: 0 auto 1.2rem;
+    padding: 1.1rem 1.2rem 1.2rem;
+    border-radius: 16px;
+    background: linear-gradient(140deg, rgba(20, 28, 48, 0.95), rgba(8, 12, 24, 0.92));
+    border: 1px solid rgba(159, 212, 248, 0.28);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+.ag-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.9rem; }
+.ag-head h4 { font-family: var(--font-title); font-size: 1rem; color: var(--color-gold); }
+.ag-head i { color: var(--color-cyan); margin-right: 0.35rem; }
+.ag-close {
+    width: 28px; height: 28px; border-radius: 8px; cursor: pointer;
+    color: var(--color-text-secondary); background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(159, 212, 248, 0.25); transition: all 0.25s ease;
+}
+.ag-close:hover { color: #fff; border-color: var(--color-cyan); }
+.ag-row { display: flex; gap: 0.8rem; align-items: flex-start; margin-bottom: 0.85rem; }
+.ag-label { flex: 0 0 4.5rem; font-size: 0.82rem; color: var(--color-text-muted); padding-top: 0.35rem; }
+.ag-budgets, .ag-purposes { display: flex; flex-wrap: wrap; gap: 0.45rem; flex: 1; }
+.ag-chip {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.32rem 0.78rem; border-radius: 50px;
+    font-family: inherit; font-size: 0.78rem; cursor: pointer;
+    color: var(--color-text-secondary);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(159, 212, 248, 0.22);
+    transition: all 0.22s ease;
+}
+.ag-chip:hover { color: #fff; border-color: var(--color-cyan); }
+.ag-chip.active {
+    color: #0a0d18; font-weight: 600;
+    background: var(--color-cyan);
+    border-color: transparent;
+}
+.ag-input {
+    width: 9rem; padding: 0.32rem 0.6rem; border-radius: 8px;
+    font-family: inherit; font-size: 0.8rem;
+    color: var(--color-text); background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(159, 212, 248, 0.25);
+}
+.ag-input:focus { outline: none; border-color: var(--color-cyan); }
+.ag-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; }
+.ag-tip { font-size: 0.74rem; color: var(--color-text-muted); }
+.ag-tip i { color: var(--color-cyan); margin-right: 0.25rem; }
+.ag-submit {
+    padding: 0.5rem 1.3rem; border-radius: 50px; cursor: pointer;
+    font-family: var(--font-title); font-size: 0.84rem; font-weight: 600;
+    color: #0a0d18; background: var(--gradient-primary);
+    border: none; transition: all 0.25s ease;
+}
+.ag-submit:disabled { opacity: 0.6; cursor: default; }
+.ag-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(157, 140, 240, 0.45); }
+
+.gear-enter-active, .gear-leave-active { transition: opacity 0.25s ease, transform 0.25s ease; }
+.gear-enter-from, .gear-leave-to { opacity: 0; transform: translateY(-8px); }
+
+/* ===== 装备方案卡 ===== */
+.gear-card {
+    margin-top: 0.6rem;
+    padding: 0.9rem 1rem 1rem;
+    border-radius: 12px;
+    background: rgba(159, 212, 248, 0.06);
+    border: 1px solid rgba(159, 212, 248, 0.22);
+}
+.gc-head { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.7rem; }
+.gc-head i { color: var(--color-gold); font-size: 1.05rem; }
+.gc-head div { display: flex; flex-direction: column; line-height: 1.4; }
+.gc-head b { font-family: var(--font-title); font-size: 0.92rem; color: var(--color-gold); }
+.gc-head span { font-size: 0.72rem; color: var(--color-text-muted); }
+.gc-plan { padding: 0.7rem 0; border-top: 1px dashed rgba(159, 212, 248, 0.18); }
+.gc-plan:first-of-type { border-top: none; padding-top: 0; }
+.gc-plan-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.45rem; }
+.gc-plan-head b { font-size: 0.9rem; color: #e8eefc; }
+.gc-total { font-size: 0.8rem; color: var(--color-gold); font-variant-numeric: tabular-nums; }
+.gc-items { list-style: none; margin: 0 0 0.45rem; padding: 0; }
+.gc-items li {
+    display: grid; grid-template-columns: 4.2rem 1fr auto; gap: 0.5rem;
+    font-size: 0.78rem; line-height: 1.8; color: var(--color-text-secondary);
+}
+.gc-role { color: var(--color-cyan); }
+.gc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gc-price { font-style: normal; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+.gc-spec { font-size: 0.72rem; color: #bfe3f5; margin-bottom: 0.4rem; }
+.gc-why { font-size: 0.78rem; line-height: 1.75; color: var(--color-text-secondary); }
+.gc-up { font-size: 0.74rem; color: var(--color-text-muted); margin-top: 0.3rem; }
+.gc-up i { color: #6ec8a8; margin-right: 0.2rem; }
+
+.ai-gear-btn {
+    width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+    color: var(--color-cyan); background: rgba(159, 212, 248, 0.08);
+    border: 1px solid rgba(159, 212, 248, 0.3);
+    transition: all 0.25s ease; flex-shrink: 0;
+}
+.ai-gear-btn:hover, .ai-gear-btn.active {
+    color: #0a0d18; background: var(--color-cyan); border-color: transparent;
+}
+
 /* 角标溯源：回答中的上标数字，对应下方来源列表 */
 :deep(.ai-cite) {
     display: inline-grid;
