@@ -2,6 +2,7 @@
 const config = require('./config');
 const { search, vectorMode } = require('./rag/search');
 const { runTools } = require('./rag/tools');
+const gearAdvisor = require('./rag/gearAdvisor');
 const { kbStats } = require('./rag/data');
 
 /* 相关性门槛：最高分低于该值时视为「知识库无命中」，走第 3 级兜底引导 */
@@ -50,12 +51,35 @@ async function llmChat(messages, maxTokens = 500) {
     }
 }
 
-const SYSTEM_PROMPT =
-    '你是"星语"，一个天文科普问答助手。规则：\n' +
-    '1. 优先依据【资料】段落回答，不要编造资料中没有的数据；\n' +
-    '2. 回答中引用资料时使用角标【1】【2】，对应资料编号；\n' +
-    '3. 语言简洁通俗，控制在 220 字以内；\n' +
-    '4. 用户的问题若与天文无关，礼貌引导回天文话题。';
+/* ---------- 多受众提示词：同样的内容，不同表达方式 ---------- */
+const SYSTEM_PROMPTS = {
+    child:
+        '你是"星语"，面向儿童的天文科普助手。规则：\n' +
+        '1. 用小学生能听懂的话，多用比喻，句子要短；\n' +
+        '2. 尽量不用专业术语，必须用时立刻用一句话解释；\n' +
+        '3. 回答控制在 120 字以内；\n' +
+        '4. 引用资料用【1】【2】角标；\n' +
+        '5. 与天文无关的问题，礼貌引导回天文话题。',
+    amateur:
+        '你是"星语"，面向天文爱好者的科普助手。规则：\n' +
+        '1. 优先依据【资料】作答，不编造数据；\n' +
+        '2. 引用资料时用【1】【2】角标；\n' +
+        '3. 结构清晰：先给结论，再讲参数与理由；\n' +
+        '4. 控制在 220 字以内；\n' +
+        '5. 与天文无关的问题，礼貌引导回天文话题。',
+    pro:
+        '你是"星语"，面向有经验的天文爱好者与从业者。规则：\n' +
+        '1. 可以使用专业术语，给出规格、数量级与取舍权衡；\n' +
+        '2. 引用资料时用【1】【2】角标；\n' +
+        '3. 不确定的数据要明确说明不确定；\n' +
+        '4. 控制在 300 字以内；\n' +
+        '5. 与天文无关的问题，礼貌引导回天文话题。'
+};
+
+const AUDIENCE_KEYS = ['child', 'amateur', 'pro'];
+function normalizeAudience(v) {
+    return AUDIENCE_KEYS.includes(v) ? v : 'amateur';
+}
 
 /* 解析回答中的角标，映射为可点击的来源列表 */
 function parseCitations(reply, sources) {
@@ -68,8 +92,23 @@ function parseCitations(reply, sources) {
     return { text, sources: [...used].sort((a, b) => a - b).map(i => sources[i]) };
 }
 
-/* ---------- 第 2 级降级：直接组装检索资料（带角标，可溯源） ---------- */
-function composeFromChunks(chunks) {
+/* ---------- 第 2 级降级：直接组装检索资料（按受众调整详略与措辞） ---------- */
+function composeFromChunks(chunks, audience) {
+    const firstSentence = s => {
+        const m = String(s || '').match(/^[^。！？!?]{6,}[。！？!?]?/);
+        return (m ? m[0] : String(s || '')).trim();
+    };
+
+    if (audience === 'child') {
+        const top = chunks.slice(0, 2);
+        const body = top.map((c, i) => `【${i + 1}】${firstSentence(c.text)}`).join('\n');
+        return `简单说：\n${body}\n（这是站内资料里的说法，角标对应下面来源）`;
+    }
+    if (audience === 'pro') {
+        const top = chunks.slice(0, 4);
+        const body = top.map((c, i) => `【${i + 1}】${c.text}`).join('\n');
+        return `检索到的站内资料（原文摘录，可按角标核对）：\n${body}`;
+    }
     const top = chunks.slice(0, 3);
     const body = top.map((c, i) => `【${i + 1}】${c.text}`).join('\n');
     return `根据站内天文资料：\n${body}\n（以上为本地知识库原文摘录，角标对应下方来源）`;
@@ -83,11 +122,37 @@ const FALLBACK_REPLY =
 const SUGGESTIONS = ['今晚能看到什么星座？', '现在的月相适合观星吗？', '黑洞是怎么形成的？', '带我去看木星'];
 
 /* ---------- 主流程 ---------- */
-async function reply(message, sessionId) {
+async function reply(message, sessionId, audienceInput) {
+    const audience = normalizeAudience(audienceInput);
     const q = String(message || '').trim().slice(0, 200);
     if (!q) return { ok: false, reply: '请输入你想问的天文问题～', sources: [], level: 3 };
 
     const history = getSession(sessionId)?.msgs || [];
+
+    // 0) 装备导购 / 参数助手：规则引擎直接作答，结果可结构化展示
+    if (gearAdvisor.isGearQuery(q)) {
+        const g = gearAdvisor.advise(q, { audience });
+        if (g.handled) {
+            if (sessionId) {
+                pushTurn(sessionId, 'user', q);
+                pushTurn(sessionId, 'assistant', String(g.reply).slice(0, 2000));
+            }
+            return {
+                ok: true,
+                reply: g.reply,
+                mode: 'rag-local',
+                level: 2,
+                levelLabel: '装备导购引擎',
+                audience,
+                tools: g.tools || [],
+                vector: vectorMode(),
+                action: null,
+                sources: [],
+                gear: g.gear || null,
+                stats: kbStats()
+            };
+        }
+    }
 
     // 1) 工具调用（月相 / 今夜观星 / 页面导航）——「哇」时刻都在这一层，不依赖大模型
     const { results: toolResults, action, tools } = runTools(q);
@@ -108,7 +173,7 @@ async function reply(message, sessionId) {
             ? '【资料】\n' + chunks.map((c, i) => `【${i + 1}】${c.title}：${c.text}`).join('\n') + '\n\n'
             : '';
         const messages = [
-            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'system', content: SYSTEM_PROMPTS[audience] || SYSTEM_PROMPTS.amateur },
             ...history.slice(-8),
             { role: 'user', content: (toolNote ? '【工具计算结果】\n' + toolNote + '\n\n' : '') + ctx + q }
         ];
@@ -124,15 +189,15 @@ async function reply(message, sessionId) {
         answer = toolNote ? toolNote + '\n' + parsed.text : parsed.text;
         usedSources = parsed.sources.length ? parsed.sources : sources;
     } else {
-        // 第 2 级：工具结论 + 知识库原文（本地抽取式回答）
+        // 第 2 级：工具结论 + 知识库原文（本地抽取式回答，按受众调整）
         if (toolNote && chunks.length) {
-            answer = toolNote + '\n\n' + composeFromChunks(chunks);
+            answer = toolNote + '\n\n' + composeFromChunks(chunks, audience);
             level = 2;
         } else if (toolNote) {
             answer = toolNote;
             level = 2;
         } else if (chunks.length) {
-            answer = composeFromChunks(chunks);
+            answer = composeFromChunks(chunks, audience);
             level = 2;
         } else {
             // 第 3 级：兜底引导
@@ -155,6 +220,7 @@ async function reply(message, sessionId) {
         reply: answer,
         mode: modeMap[level],
         level,
+        audience,
         levelLabel: level === 1 ? '大模型生成' : level === 2 ? '本地知识库检索' : '超出知识库范围',
         tools: tools || [],
         vector: vectorMode(),
