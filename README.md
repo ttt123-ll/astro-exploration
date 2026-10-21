@@ -502,6 +502,22 @@ Windows 下双击 **`查看提交记录.bat`** 可一键生成并在浏览器打
 
 ---
 
+### 12.x GitHub 推送失败（443 被污染）
+
+国内网络下 github.com 的 DNS 可能解析到被墙的边缘 IP（TCP 直接超时），但其他 GitHub 边缘 IP 仍然可达。
+项目内置了极简本地 CONNECT 代理，会自动选择可达 IP：
+
+\powershell
+powershell -ExecutionPolicy Bypass -File tools\\push.ps1
+\\n
+该脚本会启动 	ools/git-proxy.js（监听 127.0.0.1:7899）并通过它推送；也可以手动：
+
+\ash
+node tools/git-proxy.js          # 另开终端
+git -c http.proxy=http://127.0.0.1:7899 push origin main
+\\n
+---
+
 ## 十二、常见问题
 
 | 问题 | 解决 |
