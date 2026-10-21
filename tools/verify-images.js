@@ -1,6 +1,5 @@
 // 图片资源审计：确认无缺失、无水印文字、尺寸合理
 const fs = require('fs');
-const path = require('path');
 const { execFileSync } = require('child_process');
 
 const ROOT = 'F:/天文科普/client/public/assets/images';
