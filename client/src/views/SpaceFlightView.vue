@@ -23,6 +23,12 @@ const loading = ref(true);
 const renderError = ref('');
 const warping = ref(false);
 
+/* 移动端：降低几何量与像素比，优先保证帧率 */
+const IS_MOBILE = typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia('(max-width: 768px)').matches
+    : false;
+const DPR_CAP = IS_MOBILE ? 1.2 : 1.5;
+
 /* 被「星球投影」页内嵌时，给顶部模式切换让出空间 */
 const props = defineProps({ embedded: { type: Boolean, default: false } });
 const coordText = ref('X 0  Y 0  Z 0');
@@ -322,7 +328,7 @@ function buildBeltMatrices() {
 }
 
 function addAsteroidBelt() {
-    const COUNT = 1600;
+    const COUNT = IS_MOBILE ? 700 : 1600;
     // 低多边形碎石：二十面体 + 平面着色，接近真实小行星的粗糙感
     const geo = new THREE.IcosahedronGeometry(4.2, 0);
     const mat = new THREE.MeshStandardMaterial({
@@ -419,7 +425,7 @@ function init() {
     let useLogDepth = !forceNoLog;
     try {
         renderer = new THREE.WebGLRenderer({
-            canvas, antialias: true, logarithmicDepthBuffer: true,
+            canvas, antialias: !IS_MOBILE, logarithmicDepthBuffer: true,
             preserveDrawingBuffer: true, powerPreference: 'high-performance'
         });
         if (renderer.capabilities && renderer.capabilities.logarithmicDepthBuffer === false) useLogDepth = false;
@@ -429,11 +435,11 @@ function init() {
     if (!renderer) useLogDepth = false;
     if (!useLogDepth) {
         renderer = new THREE.WebGLRenderer({
-            canvas, antialias: true, logarithmicDepthBuffer: false,
+            canvas, antialias: !IS_MOBILE, logarithmicDepthBuffer: false,
             preserveDrawingBuffer: true, powerPreference: 'high-performance'
         });
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DPR_CAP));
     renderer.setSize(W, H, false);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
@@ -640,8 +646,8 @@ function animate(t) {
     fpsAcc += dt; fpsCount++;
     if (fpsAcc >= 1) {
         const fps = fpsCount / fpsAcc;
-        if (fps < 40 && renderScale > 0.6) { renderScale -= 0.1; renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5) * renderScale); }
-        else if (fps > 55 && renderScale < 1) { renderScale = Math.min(1, renderScale + 0.05); renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5) * renderScale); }
+        if (fps < 40 && renderScale > 0.6) { renderScale -= 0.1; renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DPR_CAP) * renderScale); }
+        else if (fps > 55 && renderScale < 1) { renderScale = Math.min(1, renderScale + 0.05); renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DPR_CAP) * renderScale); }
         fpsAcc = 0; fpsCount = 0;
     }
 

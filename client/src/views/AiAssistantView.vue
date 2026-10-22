@@ -203,7 +203,7 @@ async function send(text) {
 </script>
 
 <template>
-    <div class="container">
+    <div class="container ai-page">
         <PageHeader kicker="AI · RAG 检索增强" title="星语 AI 天文助手" icon="fa-robot" deco="orbit"
                     subtitle="基于站内自建天文知识库，回答可溯源" />
 

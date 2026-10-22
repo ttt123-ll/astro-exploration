@@ -32,6 +32,8 @@ function helmetMiddleware() {
                 'script-src': ["'self'"],
                 'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
                 'connect-src': ["'self'"],
+                'manifest-src': ["'self'"],
+                'worker-src': ["'self'"],
                 'frame-ancestors': ["'none'"]
             }
         },

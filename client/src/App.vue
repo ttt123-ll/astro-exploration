@@ -10,9 +10,12 @@ import CursorFX from './components/CursorFX.vue';
 import ChatWidget from './components/ChatWidget.vue';
 import PageBackdrop from './components/PageBackdrop.vue';
 import SpotlightFX from './components/SpotlightFX.vue';
+import MobileTabBar from './components/MobileTabBar.vue';
+import { useMobile } from './composables/useMobile';
 import { useAuth } from './store/auth';
 
 const auth = useAuth();
+const { isMobile } = useMobile();
 auth.fetchMe();
 </script>
 
@@ -25,12 +28,13 @@ auth.fetchMe();
     <StarField />
     <NavBar />
     <SearchOverlay />
-    <div id="main-content" tabindex="-1">
+    <div id="main-content" tabindex="-1" :class="{ 'mobile-main': isMobile }">
         <router-view />
     </div>
     <SiteFooter />
     <BackToTop />
-    <ChatWidget />
+    <MobileTabBar v-if="isMobile" />
+    <ChatWidget v-if="!isMobile" />
     <CursorFX />
     <SpotlightFX />
     <ToastHost />

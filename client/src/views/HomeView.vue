@@ -75,7 +75,8 @@ function enterPlanet(key) {
 
 <template>
     <!-- ============ 顶部：新闻轮播 ============ -->
-    <section class="hero-news" v-if="heroNews.length" @mouseenter="pauseHn" @mouseleave="resumeHn">
+    <section class="hero-news" v-if="heroNews.length" @mouseenter="pauseHn" @mouseleave="resumeHn"
+             @touchstart.passive="hnTouchStart" @touchend.passive="hnTouchEnd">
         <div class="hn-slides">
             <article v-for="(n, i) in heroNews" :key="n.id"
                      class="hn-slide" :class="{ active: i === hnIdx }"
