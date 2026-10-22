@@ -5,6 +5,8 @@ const BASE = process.env.BASE || 'http://127.0.0.1:3000';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 let pass = 0, fail = 0;
+let LLM = false;   // 是否已接入大模型（配置 AI_API_KEY）
+
 const check = (n, c, e) => {
     if (c) { pass++; console.log('  [OK] ' + n); }
     else { fail++; console.log('  [FAIL] ' + n + (e !== undefined ? '  -> ' + JSON.stringify(e).slice(0, 260) : '')); }
@@ -58,6 +60,13 @@ const lastBot = p => p.evaluate(() => {
     await p.goto(BASE + '/assistant', { waitUntil: 'domcontentloaded', timeout: 45000 });
     await sleep(1800);
 
+    // 探测当前是否接入大模型
+    try {
+        const modeInfo = await (await fetch(BASE + '/api/chat/mode')).json();
+        LLM = !!(modeInfo.levels && modeInfo.levels[0] && modeInfo.levels[0].available);
+    } catch (e) { LLM = false; }
+    console.log('运行模式: ' + (LLM ? '大模型 + 知识库' : '本地知识库（离线）'));
+
     // 状态条
     const bar = await p.evaluate(() => ({
         badges: Array.from(document.querySelectorAll('.ai-statusbar .ai-kb')).map(x => x.textContent.replace(/\s+/g, ' ').trim()),
@@ -73,8 +82,13 @@ const lastBot = p => p.evaluate(() => {
     await ask(p, '光年是什么单位？');
     let m = await lastBot(p);
     check('有回答气泡', m && m.text.length > 10, m && m.text.slice(0, 40));
-    check('回答带角标上标', m.cites.length >= 1, m.cites);
-    check('角标数字与来源数量匹配', m.cites.length <= m.sources.length, { cites: m.cites, sources: m.sources.length });
+    if (LLM) {
+        check('大模型回答为纯文本（无本地角标）', m.cites.length === 0, m.cites);
+        check('仍返回溯源来源', m.sources.length >= 1, m.sources.length);
+    } else {
+        check('回答带角标上标', m.cites.length >= 1, m.cites);
+        check('角标数字与来源数量匹配', m.cites.length <= m.sources.length, { cites: m.cites, sources: m.sources.length });
+    }
     check('来源可点击（router-link）', m.sources.length >= 1 && m.sources.every(s => s.href.startsWith('/')), m.sources);
     check('显示回答级别标签', /本地知识库检索|大模型生成/.test(m.level), m.level);
     check('内容与光年相关', /光年/.test(m.text), m.text.slice(0, 60));
@@ -108,15 +122,22 @@ const lastBot = p => p.evaluate(() => {
     await sleep(1500);
     await ask(p, '如何做红烧肉？');
     m = await lastBot(p);
-    check('触发第 3 级兜底文案', /知识库/.test(m.text), m.text.slice(0, 50));
-    check('显示兜底级别标签', /超出知识库/.test(m.level), m.level);
-    check('给出可点的推荐问题', m.suggestions.length >= 2, m.suggestions);
+    if (LLM) {
+        check('大模型礼貌拒答非天文问题', (m.text || '').length > 10 && /天文|观星|星空|不展开|范畴/.test(m.text), (m.text || '').slice(0, 50));
+        check('级别标签为大模型生成', /大模型生成/.test(m.level), m.level);
+    } else {
+        check('触发第 3 级兜底文案', /知识库/.test(m.text), m.text.slice(0, 50));
+        check('显示兜底级别标签', /超出知识库/.test(m.level), m.level);
+        check('给出可点的推荐问题', m.suggestions.length >= 2, m.suggestions);
+    }
 
-    // 点推荐问题应能继续对话
-    await p.evaluate(() => document.querySelector('.ai-quick-inline button')?.click());
-    await sleep(2500);
-    const afterSuggest = await p.evaluate(() => document.querySelectorAll('.ai-msg.bot').length);
-    check('点推荐问题可继续对话', afterSuggest >= 2, afterSuggest);
+    // 点推荐问题应能继续对话（离线兜底时才有内联推荐）
+    if (!LLM) {
+        await p.evaluate(() => document.querySelector('.ai-quick-inline button')?.click());
+        await sleep(2500);
+        const afterSuggest = await p.evaluate(() => document.querySelectorAll('.ai-msg.bot').length);
+        check('点推荐问题可继续对话', afterSuggest >= 2, afterSuggest);
+    }
 
     await p.screenshot({ path: 'F:/天文科普/shots/ai-rag.png' });
     check('无 JS 错误', errs.length === 0, errs.slice(0, 3));
