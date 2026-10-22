@@ -1,15 +1,22 @@
 // 测试 RAG 问答：三级降级 + 工具调用 + 混合检索 + 角标溯源
 const BASE = process.env.BASE || 'http://127.0.0.1:3000';
 
-const QUESTIONS = [
-    { q: '今晚能看到什么星座？', expect: { tools: ['tonight-sky', 'moon-phase'], hasText: ['星座', '月相'], level: 2 } },
-    { q: '现在的月相适合观星吗？', expect: { tools: ['moon-phase'], hasText: ['月相', '照亮'], level: 2 } },
-    { q: '带我去看木星', expect: { action: '/detail/planet/jupiter', tools: ['navigate'] } },
-    { q: '黑洞是怎么形成的？', expect: { hasText: ['黑洞'], minSources: 1, level: 2 } },
-    { q: '猎户座有什么著名的星云？', expect: { hasText: ['猎户'], minSources: 1 } },
-    { q: '光年是什么单位？', expect: { minSources: 1 } },
-    { q: '如何做红烧肉？', expect: { level: 3, noSources: true, hasText: ['知识库'] } }
-];
+/* LLM 可用时（配置了 AI_API_KEY）级别为 1；离线时降级到 2/3 */
+let LLM = false;
+function questions() {
+    const sc = LLM ? 1 : 2;   // 知识库类问题的期望级别
+    return [
+        { q: '今晚能看到什么星座？', expect: { tools: ['tonight-sky', 'moon-phase'], hasText: ['星座', '月相'], level: sc } },
+        { q: '现在的月相适合观星吗？', expect: { tools: ['moon-phase'], hasText: ['月相', '照亮'], level: sc } },
+        { q: '带我去看木星', expect: { action: '/detail/planet/jupiter', tools: ['navigate'] } },
+        { q: '黑洞是怎么形成的？', expect: { hasText: ['黑洞'], minSources: 1, level: sc } },
+        { q: '猎户座有什么著名的星云？', expect: { hasText: ['猎户'], minSources: 1 } },
+        { q: '光年是什么单位？', expect: { minSources: 1 } },
+        LLM
+            ? { q: '如何做红烧肉？', expect: { level: 1, hasText: ['天文'] } }
+            : { q: '如何做红烧肉？', expect: { level: 3, noSources: true, hasText: ['知识库'] } }
+    ];
+}
 
 (async () => {
     let pass = 0, fail = 0;
@@ -23,10 +30,11 @@ const QUESTIONS = [
     check('返回三级降级说明', Array.isArray(mode.levels) && mode.levels.length === 3, mode.levels);
     check('向量模式为 local（离线）', mode.vector === 'local', mode.vector);
     check('知识库已建库（>100 块）', mode.kb.chunks > 100, mode.kb);
-    check('当前可用级别为 2', mode.level === 2, mode.level);
+    LLM = !!(mode.levels && mode.levels[0] && mode.levels[0].available);
+    check('当前可用级别与配置一致（LLM=' + LLM + '）', mode.level === (LLM ? 1 : 2), mode.level);
 
     console.log('\n=== 问答测试 ===');
-    for (const { q, expect } of QUESTIONS) {
+    for (const { q, expect } of questions()) {
         const res = await fetch(BASE + '/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

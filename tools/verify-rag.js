@@ -77,8 +77,16 @@ async function ask(q) {
     const tools = await ask('今晚能看到什么星座？');
     check('工具调用仍可用（今夜观星）', (tools.tools || []).includes('tonight-sky'), tools.tools);
 
+    const modeInfo2 = await (await fetch(BASE + '/api/chat/mode')).json();
+    const llm = !!(modeInfo2.levels && modeInfo2.levels[0] && modeInfo2.levels[0].available);
     const fallback = await ask('如何做红烧肉？');
-    check('无关问题走兜底（level 3）', fallback.level === 3, fallback.level);
+    if (llm) {
+        // 大模型在线：无关问题由模型礼貌拒答，不再走本地兜底
+        check('无关问题礼貌拒答（大模型模式）', (fallback.reply || '').length > 10, (fallback.reply || '').slice(0, 60));
+        check('无关问题不产生天文来源或标记 level=1', fallback.level === 1, fallback.level);
+    } else {
+        check('无关问题走兜底（level 3）', fallback.level === 3, fallback.level);
+    }
 
     console.log('\n========================================');
     console.log(`  通过 ${pass} 项，失败 ${fail} 项`);
