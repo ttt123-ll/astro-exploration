@@ -2,16 +2,15 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 
 /**
- * 星语看板娘：纯 SVG 原创绘制（无第三方素材，避免版权问题）
- * - 待机动画：轻微浮动 + 周期眨眼 + 点击挥手
- * - 交互：点击弹出提示气泡，给一句使用建议；首次进入自动问候一次
- * - 无障碍：可键盘聚焦、aria-label、respect prefers-reduced-motion
+ * 星语看板娘 v2：纯 SVG 原创绘制（无第三方素材）
+ * 画风：Q 版动漫比例 + 线稿描边 + 赛璐璐阴影 + 蕾丝头饰
+ * 动画：呼吸浮动、周期眨眼、星星转动、点击挥手
  */
 const props = defineProps({
-    /** 尺寸（像素宽度），移动端可传更小值 */
-    size: { type: Number, default: 132 },
-    /** 首次进入是否自动打招呼 */
-    autoGreet: { type: Boolean, default: true }
+    size: { type: Number, default: 128 },
+    autoGreet: { type: Boolean, default: true },
+    /** 立绘图片地址：存在则用图片模式（由 AI 绘图生成后置入 public/assets/mascot/） */
+    imageSrc: { type: String, default: '/assets/mascot/star-girl.png' }
 });
 
 const TIPS = [
@@ -24,6 +23,7 @@ const TIPS = [
     '儿童 / 业余 / 专业三种讲法，右上角随时切换哦'
 ];
 
+const artReady = ref(false);
 const bubble = ref('');
 const bubbleOpen = ref(false);
 const waving = ref(false);
@@ -39,39 +39,40 @@ function pickTip() {
     tipIndex.value = (tipIndex.value + 1) % TIPS.length;
     return TIPS[tipIndex.value];
 }
-
 function showBubble(text, duration = 7000) {
     if (hideTimer) clearTimeout(hideTimer);
     bubble.value = text;
     bubbleOpen.value = true;
-    if (duration > 0) {
-        hideTimer = setTimeout(() => { bubbleOpen.value = false; }, duration);
-    }
+    if (duration > 0) hideTimer = setTimeout(() => { bubbleOpen.value = false; }, duration);
 }
-
 function waveOnce() {
     waving.value = true;
     if (waveTimer) clearTimeout(waveTimer);
-    waveTimer = setTimeout(() => { waving.value = false; }, 1400);
+    waveTimer = setTimeout(() => { waving.value = false; }, 1500);
 }
-
 function onMascotClick() {
     waveOnce();
     showBubble(pickTip(), 7000);
 }
-
 function closeBubble() {
     bubbleOpen.value = false;
     if (hideTimer) clearTimeout(hideTimer);
 }
 
 onMounted(() => {
+    // 预加载立绘：成功则用图片，失败则保持 SVG，不会出现白屏
+    if (props.imageSrc) {
+        const img = new Image();
+        img.onload = () => { artReady.value = true; };
+        img.onerror = () => { artReady.value = false; };
+        img.src = props.imageSrc;
+    }
     if (!props.autoGreet) return;
     let greeted = false;
     try { greeted = sessionStorage.getItem('mascot_greeted') === '1'; } catch (e) { /* 隐私模式 */ }
     if (greeted) return;
     greetTimer = setTimeout(() => {
-        showBubble('你好呀，我是星语 ✨ 点我可以看小提示，也可以直接在下面提问～', 6500);
+        showBubble('你好呀，我是星语 ✨ 点我看小提示，也可以直接在下面提问～', 6500);
         try { sessionStorage.setItem('mascot_greeted', '1'); } catch (e) { /* 忽略 */ }
     }, 1200);
 });
@@ -85,7 +86,6 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="mascot" :style="styleVars">
-        <!-- 提示气泡 -->
         <transition name="mascot-bubble">
             <div v-if="bubbleOpen" class="mascot-bubble" role="status">
                 <button class="mb-close" aria-label="关闭提示" @click="closeBubble"><i class="fas fa-xmark"></i></button>
@@ -94,131 +94,222 @@ onBeforeUnmount(() => {
             </div>
         </transition>
 
-        <!-- 角色本体（纯 SVG 原创） -->
         <button class="mascot-btn" :class="{ waving }" type="button"
                 aria-label="星语看板娘，点击查看使用提示" @click="onMascotClick">
-            <svg class="mascot-svg" viewBox="0 0 200 230" role="img" aria-hidden="true">
+            <!-- 立绘模式：由 AI 绘图生成后放入 public/assets/mascot/star-girl.png 即自动启用 -->
+            <img v-if="artReady" class="mascot-img" :src="imageSrc" alt="星语看板娘" draggable="false">
+            <svg v-else class="mascot-svg" viewBox="0 0 240 300" role="img" aria-hidden="true">
                 <defs>
-                    <linearGradient id="hairGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#8fb8f7" />
-                        <stop offset="55%" stop-color="#5c86d6" />
-                        <stop offset="100%" stop-color="#3c5fa8" />
+                    <!-- 发色：顶部亮青蓝 → 深蓝 -->
+                    <linearGradient id="hairTop" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#a8cbff" />
+                        <stop offset="42%" stop-color="#6f9be0" />
+                        <stop offset="100%" stop-color="#3d5f9f" />
                     </linearGradient>
-                    <linearGradient id="hairDark" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#4f79c4" />
-                        <stop offset="100%" stop-color="#2c4680" />
+                    <linearGradient id="hairBack" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#527bc0" />
+                        <stop offset="100%" stop-color="#263a66" />
                     </linearGradient>
-                    <linearGradient id="eyeGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#2b4a8c" />
-                        <stop offset="60%" stop-color="#4f7fd6" />
-                        <stop offset="100%" stop-color="#9fd8f0" />
+                    <linearGradient id="hairTail" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#7ba6e8" />
+                        <stop offset="100%" stop-color="#33517f" />
                     </linearGradient>
-                    <linearGradient id="dressGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#2b3a63" />
-                        <stop offset="100%" stop-color="#171f3a" />
-                    </linearGradient>
-                    <radialGradient id="blushGrad" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stop-color="rgba(255,150,160,0.55)" />
-                        <stop offset="100%" stop-color="rgba(255,150,160,0)" />
+                    <!-- 皮肤 -->
+                    <radialGradient id="skin" cx="42%" cy="34%" r="72%">
+                        <stop offset="0%" stop-color="#fff4ea" />
+                        <stop offset="65%" stop-color="#ffe4d4" />
+                        <stop offset="100%" stop-color="#f8cdba" />
                     </radialGradient>
-                    <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stop-color="rgba(159,212,248,0.35)" />
-                        <stop offset="100%" stop-color="rgba(159,212,248,0)" />
+                    <!-- 眼睛 -->
+                    <linearGradient id="iris" x1="0" y1="0" x2="0.2" y2="1">
+                        <stop offset="0%" stop-color="#22406f" />
+                        <stop offset="45%" stop-color="#3f74c8" />
+                        <stop offset="80%" stop-color="#7fc4ef" />
+                        <stop offset="100%" stop-color="#d6f2ff" />
+                    </linearGradient>
+                    <!-- 衣服 -->
+                    <linearGradient id="dress" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#39496f" />
+                        <stop offset="55%" stop-color="#222f52" />
+                        <stop offset="100%" stop-color="#141c33" />
+                    </linearGradient>
+                    <linearGradient id="frill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#ffffff" />
+                        <stop offset="100%" stop-color="#dbe4f7" />
+                    </linearGradient>
+                    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#ffe9a8" />
+                        <stop offset="55%" stop-color="#f3c95c" />
+                        <stop offset="100%" stop-color="#d9a334" />
+                    </linearGradient>
+                    <radialGradient id="blush" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="#ff8ea0" stop-opacity="0.5" />
+                        <stop offset="100%" stop-color="#ff8ea0" stop-opacity="0" />
                     </radialGradient>
+                    <radialGradient id="glow" cx="50%" cy="46%" r="52%">
+                        <stop offset="0%" stop-color="#9fd8f0" stop-opacity="0.32" />
+                        <stop offset="70%" stop-color="#7c9cf5" stop-opacity="0.1" />
+                        <stop offset="100%" stop-color="#7c9cf5" stop-opacity="0" />
+                    </radialGradient>
+                    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+                        <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0b1020" flood-opacity="0.28" />
+                    </filter>
                 </defs>
 
-                <!-- 光晕 -->
-                <circle cx="100" cy="120" r="86" fill="url(#glowGrad)" />
+                <!-- 背景光晕 -->
+                <circle cx="120" cy="150" r="128" fill="url(#glow)" />
 
-                <!-- 后发 -->
-                <path d="M52 92 C48 40 76 24 100 24 C126 24 152 42 148 92
-                         C156 130 150 168 138 196 C128 210 112 204 100 206
-                         C88 204 72 210 62 196 C50 168 44 130 52 92 Z"
-                      fill="url(#hairDark)" />
-
-                <!-- 侧发 -->
-                <path d="M54 96 C40 116 38 152 46 184 C52 196 62 198 66 188 C74 160 72 124 70 100 Z" fill="url(#hairGrad)" />
-                <path d="M146 96 C160 116 162 152 154 184 C148 196 138 198 134 188 C126 160 128 124 130 100 Z" fill="url(#hairGrad)" />
-
-                <!-- 脸 -->
-                <ellipse cx="100" cy="112" rx="46" ry="44" fill="#ffe7d9" />
-                <ellipse cx="56" cy="116" rx="7" ry="10" fill="#ffddcb" />
-                <ellipse cx="144" cy="116" rx="7" ry="10" fill="#ffddcb" />
-
-                <!-- 刘海 -->
-                <path d="M53 100 C54 62 74 46 100 46 C126 46 146 62 147 100
-                         C140 86 132 76 122 72 C126 84 124 94 120 100
-                         C112 82 106 74 100 72 C94 74 88 82 80 100
-                         C76 94 74 84 78 72 C68 76 60 86 53 100 Z"
-                      fill="url(#hairGrad)" />
-                <path d="M100 46 C96 30 104 20 112 16 C110 26 108 34 106 44 Z" fill="url(#hairGrad)" />
-
-                <!-- 星星发饰 -->
-                <g class="mascot-star" transform="translate(62 58)">
-                    <path d="M0 -11 L3.2 -3.4 L11 -3.4 L4.8 1.6 L7.2 9.4 L0 4.6 L-7.2 9.4 L-4.8 1.6 L-11 -3.4 L-3.2 -3.4 Z"
-                          fill="#f5d17a" stroke="#e8b84f" stroke-width="1.2" />
+                <!-- ===== 后方双马尾 ===== -->
+                <g stroke="#25345c" stroke-width="2.4" stroke-linejoin="round">
+                    <path d="M62 120 C36 152 30 208 46 252 C54 272 70 278 80 264 C92 246 92 196 88 160 Z"
+                          fill="url(#hairTail)" />
+                    <path d="M178 120 C204 152 210 208 194 252 C186 272 170 278 160 264 C148 246 148 196 152 160 Z"
+                          fill="url(#hairTail)" />
                 </g>
-                <!-- 发带蝴蝶结 -->
-                <g transform="translate(140 78)">
-                    <path d="M0 0 C-10 -8 -18 0 -10 8 C-6 11 -2 8 0 4 Z" fill="#9fd8f0" />
-                    <path d="M0 0 C10 -8 18 0 10 8 C6 11 2 8 0 4 Z" fill="#9fd8f0" />
-                    <circle cx="0" cy="3" r="3" fill="#e8f4ff" />
+                <!-- 马尾高光 -->
+                <path d="M58 140 C46 176 46 220 58 246" stroke="#b9d8ff" stroke-width="5" fill="none"
+                      stroke-linecap="round" opacity="0.5" />
+                <path d="M182 140 C194 176 194 220 182 246" stroke="#b9d8ff" stroke-width="5" fill="none"
+                      stroke-linecap="round" opacity="0.5" />
+
+                <!-- ===== 后发底座 ===== -->
+                <path d="M66 108 C64 52 92 28 120 28 C148 28 176 52 174 108
+                         C180 140 172 168 160 182 L80 182 C68 168 60 140 66 108 Z"
+                      fill="url(#hairBack)" stroke="#25345c" stroke-width="2.6" stroke-linejoin="round" />
+
+                <!-- ===== 身体：肩膀与连衣裙 ===== -->
+                <g stroke="#1d2946" stroke-width="2.4" stroke-linejoin="round">
+                    <path d="M120 186 L120 200" stroke="#e8b7a4" stroke-width="16" stroke-linecap="round" />
+                    <path d="M74 300 C74 244 94 208 120 208 C146 208 166 244 166 300 Z" fill="url(#dress)" />
+                    <!-- 袖子 -->
+                    <path d="M74 236 C58 242 50 262 54 282 C58 296 74 298 80 286 C88 270 86 246 82 234 Z" fill="url(#dress)" />
+                    <path d="M166 236 C182 242 190 262 186 282 C182 296 166 298 160 286 C152 270 154 246 158 234 Z" fill="url(#dress)" />
+                </g>
+                <!-- 领口白边 -->
+                <path d="M100 206 C108 218 132 218 140 206 C137 224 103 224 100 206 Z"
+                      fill="url(#frill)" stroke="#b9c6e2" stroke-width="1.8" />
+                <!-- 领结 -->
+                <g transform="translate(120 226)" stroke="#1d2946" stroke-width="1.8">
+                    <path d="M0 0 C-16 -10 -28 2 -15 12 C-7 17 -2 12 0 6 Z" fill="#8fd0ec" />
+                    <path d="M0 0 C16 -10 28 2 15 12 C7 17 2 12 0 6 Z" fill="#8fd0ec" />
+                    <circle cx="0" cy="5" r="5" fill="url(#gold)" />
                 </g>
 
-                <!-- 眉毛 -->
-                <path d="M72 92 C78 88 86 88 92 91" stroke="#5c86d6" stroke-width="2.4" fill="none" stroke-linecap="round" />
-                <path d="M108 91 C114 88 122 88 128 92" stroke="#5c86d6" stroke-width="2.4" fill="none" stroke-linecap="round" />
+                <!-- ===== 脸 ===== -->
+                <path d="M74 104 C74 64 94 46 120 46 C146 46 166 64 166 104
+                         C166 138 146 166 120 166 C94 166 74 138 74 104 Z"
+                      fill="url(#skin)" stroke="#e5b3a0" stroke-width="2" stroke-linejoin="round" />
+                <!-- 耳朵 -->
+                <ellipse cx="72" cy="112" rx="9" ry="13" fill="#ffe0cf" stroke="#e5b3a0" stroke-width="2" />
+                <ellipse cx="168" cy="112" rx="9" ry="13" fill="#ffe0cf" stroke="#e5b3a0" stroke-width="2" />
 
-                <!-- 眼睛 -->
+                <!-- 下巴阴影 -->
+                <path d="M92 138 C102 152 138 152 148 138 C142 160 98 160 92 138 Z" fill="#f6c7b4" opacity="0.7" />
+
+                <!-- ===== 刘海 ===== -->
+                <g fill="url(#hairTop)" stroke="#25345c" stroke-width="2.6" stroke-linejoin="round">
+                    <!-- 左侧长刘海 -->
+                    <path d="M70 112 C66 76 82 50 104 42 C96 62 92 84 94 104
+                             C88 100 84 108 86 122 C80 128 74 124 70 112 Z" />
+                    <!-- 中间刘海 -->
+                    <path d="M100 44 C112 36 128 36 140 44 C134 62 130 80 132 98
+                             C126 94 122 84 120 70 C118 84 114 92 108 98
+                             C110 80 106 62 100 44 Z" />
+                    <!-- 右侧长刘海 -->
+                    <path d="M146 46 C168 56 176 78 172 112 C168 124 162 128 156 122
+                             C158 108 154 100 148 104 C150 84 150 64 146 46 Z" />
+                </g>
+                <!-- 发丝高光 -->
+                <g stroke="#d6ecff" fill="none" stroke-linecap="round" opacity="0.75">
+                    <path d="M86 84 C86 70 92 58 102 50" stroke-width="4" />
+                    <path d="M140 52 C150 60 156 74 156 88" stroke-width="3.4" />
+                    <path d="M112 46 C118 42 126 42 132 46" stroke-width="3" />
+                </g>
+                <!-- 呆毛 -->
+                <path d="M120 40 C116 20 128 8 142 6 C134 18 130 30 130 42 Z"
+                      fill="url(#hairTop)" stroke="#25345c" stroke-width="2.4" stroke-linejoin="round" />
+
+                <!-- ===== 蕾丝头饰（女仆发带） ===== -->
+                <path d="M78 66 C96 46 144 46 162 66" stroke="#e7eefc" stroke-width="12" fill="none" stroke-linecap="round" />
+                <path d="M78 66 C96 46 144 46 162 66" stroke="#c3cfe6" stroke-width="12" fill="none"
+                      stroke-linecap="round" stroke-dasharray="1 9" opacity="0.9" />
+                <!-- 荷叶边 -->
+                <g fill="url(#frill)" stroke="#c3cfe6" stroke-width="1.6">
+                    <circle cx="86" cy="58" r="8" />
+                    <circle cx="106" cy="50" r="8.6" />
+                    <circle cx="128" cy="49" r="8.6" />
+                    <circle cx="150" cy="57" r="8" />
+                </g>
+
+                <!-- ===== 星星发饰（左） ===== -->
+                <g class="mascot-star" transform="translate(78 88) rotate(-12)">
+                    <path class="mascot-star-shape"
+                          d="M0 -15 L4.4 -4.6 L15 -4.6 L6.6 2.2 L9.8 12.8 L0 6.4 L-9.8 12.8 L-6.6 2.2 L-15 -4.6 L-4.4 -4.6 Z"
+                          fill="url(#gold)" stroke="#b8842a" stroke-width="1.8" stroke-linejoin="round" />
+                    <circle cx="-3" cy="-4" r="2.2" fill="#fff6d8" opacity="0.9" />
+                </g>
+                <!-- 蝴蝶结（右） -->
+                <g transform="translate(166 96)" stroke="#1d2946" stroke-width="1.8">
+                    <path d="M0 0 C-14 -9 -24 2 -13 11 C-6 15 -2 11 0 5 Z" fill="#9fd8f0" />
+                    <path d="M0 0 C14 -9 24 2 13 11 C6 15 2 11 0 5 Z" fill="#9fd8f0" />
+                    <circle cx="0" cy="5" r="4.6" fill="url(#gold)" />
+                </g>
+
+                <!-- ===== 眉毛 ===== -->
+                <g stroke="#4b6da8" stroke-width="3" fill="none" stroke-linecap="round">
+                    <path d="M88 108 C94 102 104 102 110 106" />
+                    <path d="M130 106 C136 102 146 102 152 108" />
+                </g>
+
+                <!-- ===== 大眼睛 ===== -->
                 <g class="mascot-eyes">
-                    <ellipse cx="82" cy="112" rx="12" ry="14" fill="#ffffff" />
-                    <ellipse cx="118" cy="112" rx="12" ry="14" fill="#ffffff" />
-                    <ellipse cx="82" cy="113" rx="9.5" ry="12" fill="url(#eyeGrad)" />
-                    <ellipse cx="118" cy="113" rx="9.5" ry="12" fill="url(#eyeGrad)" />
-                    <ellipse cx="82" cy="115" rx="5" ry="6.5" fill="#22315c" />
-                    <ellipse cx="118" cy="115" rx="5" ry="6.5" fill="#22315c" />
-                    <circle cx="78" cy="106" r="3.4" fill="#ffffff" />
-                    <circle cx="114" cy="106" r="3.4" fill="#ffffff" />
-                    <circle cx="86" cy="120" r="1.8" fill="#cfe0f8" opacity="0.9" />
-                    <circle cx="122" cy="120" r="1.8" fill="#cfe0f8" opacity="0.9" />
+                    <!-- 眼白 -->
+                    <ellipse cx="100" cy="130" rx="17" ry="20" fill="#ffffff" stroke="#3a4a72" stroke-width="1.6" />
+                    <ellipse cx="140" cy="130" rx="17" ry="20" fill="#ffffff" stroke="#3a4a72" stroke-width="1.6" />
+                    <!-- 虹膜 -->
+                    <ellipse cx="100" cy="132" rx="13.5" ry="17" fill="url(#iris)" />
+                    <ellipse cx="140" cy="132" rx="13.5" ry="17" fill="url(#iris)" />
+                    <!-- 瞳孔 -->
+                    <ellipse cx="100" cy="134" rx="6.6" ry="8.6" fill="#16223f" />
+                    <ellipse cx="140" cy="134" rx="6.6" ry="8.6" fill="#16223f" />
+                    <!-- 虹膜下缘亮光 -->
+                    <path d="M92 140 C96 148 104 148 108 140 C104 144 96 144 92 140 Z" fill="#eaf8ff" opacity="0.85" />
+                    <path d="M132 140 C136 148 144 148 148 140 C144 144 136 144 132 140 Z" fill="#eaf8ff" opacity="0.85" />
+                    <!-- 高光 -->
+                    <circle cx="94" cy="122" r="5.2" fill="#ffffff" />
+                    <circle cx="134" cy="122" r="5.2" fill="#ffffff" />
+                    <circle cx="106" cy="143" r="2.4" fill="#ffffff" opacity="0.9" />
+                    <circle cx="146" cy="143" r="2.4" fill="#ffffff" opacity="0.9" />
+                    <!-- 上睫毛 -->
+                    <path d="M83 118 C90 106 110 106 117 118" stroke="#2b3a63" stroke-width="3.4" fill="none" stroke-linecap="round" />
+                    <path d="M123 118 C130 106 150 106 157 118" stroke="#2b3a63" stroke-width="3.4" fill="none" stroke-linecap="round" />
+                    <!-- 外眼角睫毛 -->
+                    <path d="M82 116 L76 111" stroke="#2b3a63" stroke-width="2.6" stroke-linecap="round" />
+                    <path d="M158 116 L164 111" stroke="#2b3a63" stroke-width="2.6" stroke-linecap="round" />
+                    <!-- 下睫毛 -->
+                    <path d="M88 148 C92 152 98 153 104 151" stroke="#6d7fa8" stroke-width="1.8" fill="none" stroke-linecap="round" />
+                    <path d="M136 151 C142 153 148 152 152 148" stroke="#6d7fa8" stroke-width="1.8" fill="none" stroke-linecap="round" />
                 </g>
 
-                <!-- 腮红 -->
-                <ellipse cx="66" cy="124" rx="10" ry="6" fill="url(#blushGrad)" />
-                <ellipse cx="134" cy="124" rx="10" ry="6" fill="url(#blushGrad)" />
+                <!-- ===== 鼻子 / 嘴 / 腮红 ===== -->
+                <path d="M119 142 C120 144 122 144 123 142" stroke="#e0a493" stroke-width="2" fill="none" stroke-linecap="round" />
+                <path d="M110 152 C115 159 125 159 130 152" stroke="#d9708a" stroke-width="2.8" fill="none" stroke-linecap="round" />
+                <ellipse cx="82" cy="144" rx="14" ry="8" fill="url(#blush)" />
+                <ellipse cx="158" cy="144" rx="14" ry="8" fill="url(#blush)" />
 
-                <!-- 嘴 -->
-                <path d="M96 130 C99 134 101 134 104 130" stroke="#d9798a" stroke-width="2.2" fill="none" stroke-linecap="round" />
-
-                <!-- 脖颈与衣服 -->
-                <path d="M86 148 C92 156 108 156 114 148 L118 160 L82 160 Z" fill="#ffddcb" />
-                <path d="M56 230 C56 190 74 168 100 168 C126 168 144 190 144 230 Z" fill="url(#dressGrad)" />
-                <path d="M84 166 C92 176 108 176 116 166 C112 180 88 180 84 166 Z" fill="#eef4ff" />
-                <g transform="translate(100 182)">
-                    <path d="M0 0 C-12 -7 -20 2 -11 9 C-6 13 -2 9 0 5 Z" fill="#9fd8f0" />
-                    <path d="M0 0 C12 -7 20 2 11 9 C6 13 2 9 0 5 Z" fill="#9fd8f0" />
-                    <circle cx="0" cy="4" r="3.6" fill="#f5d17a" />
-                </g>
-
-                <!-- 望远镜徽章 -->
-                <g transform="translate(100 208)" opacity="0.95">
-                    <rect x="-14" y="-5" width="20" height="9" rx="3" fill="#9fb8e8" />
-                    <rect x="4" y="-3.5" width="10" height="7" rx="2" fill="#7c9cf5" />
-                    <circle cx="15" cy="0" r="3.2" fill="#cfe0f8" />
-                </g>
-
-                <!-- 挥手 -->
+                <!-- ===== 举起的小手（点击挥手） ===== -->
                 <g class="mascot-hand">
-                    <path d="M146 198 C160 190 172 182 178 170 C182 162 174 156 168 162 C162 170 152 180 142 186 Z" fill="url(#dressGrad)" />
-                    <circle cx="180" cy="165" r="8" fill="#ffe7d9" />
+                    <path d="M64 250 C52 236 48 216 56 202 C60 194 70 196 72 206 C74 218 74 232 78 242 Z"
+                          fill="url(#dress)" stroke="#1d2946" stroke-width="2" stroke-linejoin="round" />
+                    <circle cx="58" cy="198" r="10" fill="url(#skin)" stroke="#e5b3a0" stroke-width="2" />
                 </g>
 
-                <!-- 装饰星点 -->
+                <!-- ===== 装饰星点 ===== -->
                 <g class="mascot-sparkles" fill="#cfe0f8">
-                    <circle cx="34" cy="62" r="2.2" />
-                    <circle cx="170" cy="52" r="1.8" />
-                    <circle cx="26" cy="150" r="1.6" />
-                    <circle cx="176" cy="132" r="2" />
+                    <path d="M40 150 l2.4 5.6 5.6 2.4 -5.6 2.4 -2.4 5.6 -2.4 -5.6 -5.6 -2.4 5.6 -2.4 Z" opacity="0.9" />
+                    <circle cx="204" cy="120" r="2.6" />
+                    <circle cx="34" cy="96" r="2" />
+                    <circle cx="200" cy="196" r="2.2" />
                 </g>
             </svg>
         </button>
@@ -228,11 +319,10 @@ onBeforeUnmount(() => {
 <style scoped>
 .mascot {
     position: relative;
-    width: var(--mascot-size, 132px);
+    width: var(--mascot-size, 128px);
     user-select: none;
     z-index: 25;
 }
-
 .mascot-btn {
     display: block;
     width: 100%;
@@ -241,63 +331,90 @@ onBeforeUnmount(() => {
     background: none;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    animation: mascotFloat 4.5s ease-in-out infinite;
+    animation: mascotFloat 4.8s ease-in-out infinite;
+    transform-origin: 50% 90%;
 }
 .mascot-btn:focus-visible {
     outline: 2px solid var(--color-cyan);
     outline-offset: 6px;
-    border-radius: 50%;
+    border-radius: 40%;
 }
-
 .mascot-svg {
     width: 100%;
     height: auto;
     display: block;
-    filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.45));
+    filter: drop-shadow(0 12px 26px rgba(0, 0, 0, 0.45));
 }
 
+/* 立绘模式 */
+.mascot-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+    -webkit-user-drag: none;
+    filter: drop-shadow(0 12px 26px rgba(0, 0, 0, 0.5));
+    transition: transform 0.25s ease;
+}
+.mascot-btn:hover .mascot-img { transform: scale(1.03); }
+.mascot-btn.waving .mascot-img { animation: mascotImgWave 0.75s ease-in-out 2; }
+@keyframes mascotImgWave {
+    0%, 100% { transform: rotate(0deg) translateY(0); }
+    50% { transform: rotate(-3deg) translateY(-4px); }
+}
+
+/* 呼吸浮动 */
 @keyframes mascotFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-5px) scale(1.012); }
 }
 
-.mascot-eyes { transform-origin: 100px 112px; animation: mascotBlink 5.2s infinite; }
+/* 眨眼 */
+.mascot-eyes { transform-origin: 120px 130px; animation: mascotBlink 5.4s infinite; }
 @keyframes mascotBlink {
-    0%, 92%, 100% { transform: scaleY(1); }
-    94%, 96% { transform: scaleY(0.08); }
+    0%, 91%, 100% { transform: scaleY(1); }
+    93%, 96% { transform: scaleY(0.06); }
     98% { transform: scaleY(1); }
 }
 
-.mascot-star { transform-origin: 62px 58px; animation: mascotStarSpin 12s linear infinite; }
+/* 星星缓慢转动 + 微光 */
+.mascot-star { transform-box: fill-box; transform-origin: center; animation: mascotStarSpin 14s linear infinite; }
 @keyframes mascotStarSpin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from { transform: rotate(-12deg); }
+    to { transform: rotate(348deg); }
+}
+.mascot-star-shape { animation: mascotStarGlow 3.2s ease-in-out infinite; }
+@keyframes mascotStarGlow {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(255, 220, 130, 0)); }
+    50% { filter: drop-shadow(0 0 6px rgba(255, 220, 130, 0.9)); }
 }
 
-.mascot-btn.waving .mascot-hand { animation: mascotWave 0.7s ease-in-out 2; transform-origin: 148px 192px; }
+/* 点击挥手 */
+.mascot-btn.waving .mascot-hand { animation: mascotWave 0.72s ease-in-out 2; transform-box: fill-box; transform-origin: 30% 90%; }
 @keyframes mascotWave {
     0%, 100% { transform: rotate(0deg); }
-    50% { transform: rotate(-16deg); }
+    50% { transform: rotate(-18deg); }
 }
 
-.mascot-sparkles { animation: mascotTwinkle 3.4s ease-in-out infinite; }
+/* 星点闪烁 */
+.mascot-sparkles { animation: mascotTwinkle 3.6s ease-in-out infinite; }
 @keyframes mascotTwinkle {
-    0%, 100% { opacity: 0.45; }
+    0%, 100% { opacity: 0.4; }
     50% { opacity: 1; }
 }
 
-/* 提示气泡 */
+/* 气泡 */
 .mascot-bubble {
     position: absolute;
-    right: calc(100% - 12px);
-    top: 6%;
-    width: max(190px, 11rem);
+    right: calc(100% - 6px);
+    top: 2%;
+    width: max(200px, 11.5rem);
     max-width: 15rem;
-    padding: 0.7rem 0.9rem;
-    border-radius: 14px;
+    padding: 0.7rem 0.95rem;
+    border-radius: 16px;
     background: rgba(10, 16, 32, 0.97);
-    border: 1px solid rgba(159, 212, 248, 0.4);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(159, 212, 248, 0.42);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6);
     font-size: 0.8rem;
     line-height: 1.7;
     color: #dfe8fb;
@@ -305,49 +422,34 @@ onBeforeUnmount(() => {
 }
 .mascot-bubble p { margin: 0; padding-right: 1rem; }
 .mb-close {
-    position: absolute;
-    top: 4px;
-    right: 5px;
-    width: 20px;
-    height: 20px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-    color: #b9c8e6;
-    font-size: 0.65rem;
-    cursor: pointer;
+    position: absolute; top: 4px; right: 5px;
+    width: 20px; height: 20px; border: none; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08); color: #b9c8e6;
+    font-size: 0.65rem; cursor: pointer;
 }
 .mb-close:hover { color: #fff; background: rgba(255, 255, 255, 0.18); }
 .mb-tail {
-    position: absolute;
-    right: -6px;
-    top: 26px;
-    width: 12px;
-    height: 12px;
-    background: inherit;
-    border-right: 1px solid rgba(159, 212, 248, 0.4);
-    border-bottom: 1px solid rgba(159, 212, 248, 0.4);
-    transform: rotate(-45deg);
-    border-radius: 2px;
+    position: absolute; right: -6px; top: 24px;
+    width: 12px; height: 12px; background: inherit;
+    border-right: 1px solid rgba(159, 212, 248, 0.42);
+    border-bottom: 1px solid rgba(159, 212, 248, 0.42);
+    transform: rotate(-45deg); border-radius: 2px;
 }
 
 .mascot-bubble-enter-active, .mascot-bubble-leave-active { transition: opacity 0.22s ease, transform 0.22s ease; }
 .mascot-bubble-enter-from, .mascot-bubble-leave-to { opacity: 0; transform: translateX(8px) scale(0.96); }
 
-/* 移动端：更小、气泡贴右 */
 @media (max-width: 768px) {
-    .mascot { width: calc(var(--mascot-size, 132px) * 0.82); }
+    .mascot { width: calc(var(--mascot-size, 128px) * 0.78); }
     .mascot-bubble {
-        right: 0;
-        left: auto;
-        top: auto;
+        right: 0; left: auto; top: auto;
         bottom: calc(100% + 8px);
-        width: min(70vw, 15rem);
+        width: min(72vw, 15rem);
     }
     .mb-tail { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .mascot-btn, .mascot-eyes, .mascot-star, .mascot-sparkles { animation: none !important; }
+    .mascot-btn, .mascot-eyes, .mascot-star, .mascot-star-shape, .mascot-sparkles { animation: none !important; }
 }
 </style>
