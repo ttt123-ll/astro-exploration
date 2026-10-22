@@ -464,6 +464,7 @@ chore: 构建/工具  perf: 性能优化
 | `tools/verify-ai-ui.js` | AI 助手界面：角标溯源、级别/工具徽标、兜底推荐、自动跳转 | 20 |
 | `tools/verify-mobile.js` | 移动端（iPhone 12 / 360px / iPad）：横向溢出、汉堡菜单、关键页可用性 | 90 |
 | `tools/verify-mobile-app.js` | 移动端 H5 专版：底部 Tab 导航、AI/3D 适配、PWA 安装与注册 | 32 |
+| `tools/verify-mascot.js` | 星语看板娘：原创 SVG、点击气泡、自动问候、移动端显隐 | 16 |
 | `tools/verify-images.js` | 图片资源完整性：无缺失、无水印文字、尺寸合理 | 8 |
 | `tools/verify-rag.js` | RAG 检索评估：Hit@1/Hit@3/MRR + 向量库状态 + 端到端问答 | 13 |
 | `tools/verify-gear.js` | 装备导购：元数据、结构化方案、预算约束、三档受众差异、意图识别 | 43 |
