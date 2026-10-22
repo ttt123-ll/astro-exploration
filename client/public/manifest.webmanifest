@@ -1,0 +1,24 @@
+{
+  "name": "宇宙探索 · 天文科普",
+  "short_name": "宇宙探索",
+  "description": "面向大众的天文科普站点：太阳系、恒星与星系、黑洞、四季星座、深空天体、3D 星球投影与 AI 天文助手。",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "/?utm_source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#05060a",
+  "theme_color": "#05060a",
+  "categories": ["education", "science", "reference"],
+  "icons": [
+    { "src": "/assets/brand/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/brand/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "四季星座", "url": "/constellations", "icons": [{ "src": "/assets/brand/icon-192.png", "sizes": "192x192" }] },
+    { "name": "AI 天文助手", "url": "/assistant", "icons": [{ "src": "/assets/brand/icon-192.png", "sizes": "192x192" }] },
+    { "name": "3D 遨游太空", "url": "/planet-show", "icons": [{ "src": "/assets/brand/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

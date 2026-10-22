@@ -147,7 +147,9 @@ const DEVICES = [
                 hasInput: !!input,
                 inputWidth: input ? Math.round(input.getBoundingClientRect().width) : 0,
                 hasSend: !!send,
-                panelFits: rect ? rect.width <= window.innerWidth + 2 : false
+                panelW: rect ? Math.round(rect.width) : 0,
+                viewW: document.documentElement.clientWidth,
+                panelFits: rect ? rect.width <= document.documentElement.clientWidth + 2 : false
             };
         });
         check('AI 输入框存在且宽度合理', ai.hasInput && ai.inputWidth > 120, ai);

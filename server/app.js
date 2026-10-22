@@ -102,7 +102,14 @@ if (fs.existsSync(distDir)) {
     app.use(express.static(distDir, {
         index: false,
         setHeaders(res, file) {
+            const name = path.basename(file);
             const isIndex = file.endsWith('index.html');
+            // Service Worker 与 manifest 必须及时更新：不缓存
+            if (name === 'sw.js' || name.endsWith('.webmanifest')) {
+                res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+                res.setHeader('Service-Worker-Allowed', '/');
+                return;
+            }
             res.setHeader('Cache-Control', isIndex ? 'no-cache' : 'public, max-age=3600');
         }
     }));
