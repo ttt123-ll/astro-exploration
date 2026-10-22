@@ -3,6 +3,8 @@ import { ref, computed, nextTick, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 import PageHeader from '../components/PageHeader.vue';
+import MascotStar from '../components/MascotStar.vue';
+import { useMobile } from '../composables/useMobile';
 
 const router = useRouter();
 const currentRoute = useRoute();
@@ -18,6 +20,7 @@ function getSessionId() {
     return id;
 }
 const sessionId = getSessionId();
+const { isMobile } = useMobile();
 
 /* ===================== 模式与知识库规模 ===================== */
 const mode = ref('llm');
@@ -384,6 +387,10 @@ async function send(text) {
                 </div>
             </div>
 
+            <!-- 星语看板娘：桌面常驻；移动端仅在欢迎态显示，避免遮挡输入与消息 -->
+            <MascotStar v-if="!isMobile || !messages.length" class="ai-mascot"
+                        :size="isMobile ? 92 : 128" />
+
             <!-- 输入栏 -->
             <div class="ai-input-row">
                 <input v-model="input" type="text" placeholder="问一个天文问题，比如「今晚能看到什么星座？」…"
@@ -401,6 +408,25 @@ async function send(text) {
 </template>
 
 <style scoped>
+/* ===== 星语看板娘定位 ===== */
+.ai-mascot {
+    position: fixed;
+    right: 26px;
+    bottom: 116px;
+    z-index: 26;
+    pointer-events: none;
+}
+.ai-mascot :deep(.mascot-btn),
+.ai-mascot :deep(.mascot-bubble) { pointer-events: auto; }
+
+@media (max-width: 768px) {
+    .ai-mascot {
+        right: 8px;
+        bottom: calc(154px + env(safe-area-inset-bottom, 0px));
+        z-index: 26;
+    }
+}
+
 /* ===== 受众模式选择器 ===== */
 .ai-audience {
     display: flex;
