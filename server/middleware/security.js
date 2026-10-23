@@ -34,7 +34,11 @@ function helmetMiddleware() {
                 'connect-src': ["'self'"],
                 'manifest-src': ["'self'"],
                 'worker-src': ["'self'"],
-                'frame-ancestors': ["'none'"]
+                'frame-ancestors': ["'none'"],
+                // 手机通过局域网 http://<IP>:3001 访问时，浏览器会把子资源强制升级到 https
+                // （局域网无证书 → ERR_SSL_PROTOCOL_ERROR，整站白屏）。
+                // 关闭 helmet 默认的 upgrade-insecure-requests；生产强制 HTTPS 可交给反向代理 301。
+                'upgrade-insecure-requests': null
             }
         },
         crossOriginEmbedderPolicy: false,
