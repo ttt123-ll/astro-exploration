@@ -121,7 +121,7 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <VideoSection topic="gallery" title="望远镜科普视频" />
+        <VideoSection context="gallery" title="望远镜科普视频" />
         <BookSection topic="gallery" />
     </div>
 

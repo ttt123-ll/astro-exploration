@@ -14,8 +14,9 @@ const activeCat = ref('行星');
 const items = computed(() => projection.filter(x => x.cat === activeCat.value));
 const selected = ref(null);
 
-const topicMap = { 行星: 'solar', 星座: 'constellation', 黑洞: 'blackhole', 恒星: 'star', 星系: 'star', 深空: 'deepspace' };
-const videoTopic = computed(() => topicMap[activeCat.value] || 'deepspace');
+/* 3D 投影页只在有专属视频的分类下展示，避免与其它页面重复 */
+const videoMap = { 黑洞: 'blackhole', 恒星: 'star', 深空: 'deepspace' };
+const videoContext = computed(() => videoMap[activeCat.value] || '');
 
 function switchCat(c) {
     activeCat.value = c;
@@ -101,7 +102,7 @@ function pick(i) {
             </div>
 
             <!-- 该天体所属分类的科普视频 -->
-            <VideoSection :topic="videoTopic" :title="activeCat + '科普视频'" />
+            <VideoSection v-if="videoContext" :context="videoContext" :title="activeCat + '科普视频'" />
         </div>
 
         <!-- 主题书单（与是否选中天体无关，始终显示） -->

@@ -26,10 +26,13 @@ const backPath = {
     planet: '/solar-system', star: '/encyclopedia?tab=stars', constellation: '/constellations',
     galaxy: '/encyclopedia?tab=stars', blackhole: '/encyclopedia?tab=bh', object: '/deep-space', telescope: '/gallery'
 };
-const videoTopic = computed(() => ({
-    planet: 'planet', star: 'star', galaxy: 'star', constellation: 'constellation',
-    blackhole: 'blackhole', object: 'deepspace', telescope: 'telescope'
-}[group.value] || 'deepspace'));
+/* 视频与天体一一对应：只有确实匹配的视频才展示，其余页面不硬塞 */
+const VIDEO_GROUP = { star: 'star', blackhole: 'blackhole', object: 'deepspace', telescope: 'gallery' };
+const PLANET_VIDEO = { mars: 'planet-mars', jupiter: 'planet-jupiter', saturn: 'planet-saturn' };
+const videoContext = computed(() => {
+    if (group.value === 'planet') return PLANET_VIDEO[key.value] || '';
+    return VIDEO_GROUP[group.value] || '';
+});
 const bookTopic = computed(() => GROUP_TOPIC[group.value] || 'deep');
 
 /* ===================== 段落图标：按标题语义映射，而不是按序号轮换 ===================== */
@@ -111,7 +114,7 @@ const sizeNote = computed(() => {
                     <p v-for="(p, j) in s.paras" :key="j">{{ p }}</p>
                 </section>
 
-                <VideoSection :topic="videoTopic" title="相关科普视频" />
+                <VideoSection v-if="videoContext" :context="videoContext" title="相关科普视频" />
                 <BookSection :topic="bookTopic" />
             </div>
 

@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import constellations from '../data/constellations';
-import VideoSection from '../components/VideoSection.vue';
 import BookSection from '../components/BookSection.vue';
 import PageHeader from '../components/PageHeader.vue';
 import content from '../data/content';
@@ -443,7 +442,7 @@ const iauFiltered = computed(() => iauZone.value === '全部' ? iau88.value : ia
             </div>
         </section>
 
-        <VideoSection topic="constellation" title="星座科普视频" />
+        <!-- 星座页暂无专属视频，按要求不硬塞 -->
         <BookSection topic="constellations" />
     </div>
 </template>

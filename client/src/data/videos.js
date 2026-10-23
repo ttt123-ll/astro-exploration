@@ -7,7 +7,8 @@ export default [
         src: '/assets/videos/explain/explain_mars.mp4',
         poster: '/assets/images/mars.jpg',
         credit: 'NASA/JPL',
-        topics: ['solar', 'planet']
+        topics: ['solar', 'planet'],
+        context: 'planet-mars'
     },
     {
         title: '太阳活动高光 · 太阳黑子',
@@ -16,7 +17,8 @@ export default [
         src: '/assets/videos/explain/explain_sun.mp4',
         poster: '/assets/images/solar_eclipse.jpg',
         credit: 'NASA/SDO',
-        topics: ['solar', 'planet', 'star']
+        topics: ['solar', 'planet', 'star'],
+        context: 'solar'
     },
     {
         title: '欧罗巴快帆 · NASA 的木星之旅',
@@ -25,7 +27,8 @@ export default [
         src: '/assets/videos/explain/explain_jupiter.mp4',
         poster: '/assets/images/jupiter.jpg',
         credit: 'NASA/JPL',
-        topics: ['solar', 'planet']
+        topics: ['solar', 'planet'],
+        context: 'planet-jupiter'
     },
     {
         title: '卡西尼号的土星红外影像',
@@ -34,7 +37,8 @@ export default [
         src: '/assets/videos/explain/explain_saturn.mp4',
         poster: '/assets/images/saturn.jpg',
         credit: 'NASA/JPL',
-        topics: ['solar', 'gallery']
+        topics: ['solar', 'gallery'],
+        context: 'planet-saturn'
     },
     {
         title: 'IXPE 偏振观测 · 超新星遗迹',
@@ -43,7 +47,8 @@ export default [
         src: '/assets/videos/explain/explain_supernova.mp4',
         poster: '/assets/images/crab_nebula.jpg',
         credit: 'NASA',
-        topics: ['star', 'deepspace']
+        topics: ['star', 'deepspace'],
+        context: 'star'
     },
     {
         title: '黑洞是什么？NASA 专家解答',
@@ -52,7 +57,8 @@ export default [
         src: '/assets/videos/explain/explain_blackhole.mp4',
         poster: '/assets/images/blackhole.jpg',
         credit: 'NASA',
-        topics: ['blackhole', 'deepspace']
+        topics: ['blackhole', 'deepspace'],
+        context: 'blackhole'
     },
     {
         title: 'SOFIA 揭示银河系中心新视图',
@@ -61,7 +67,8 @@ export default [
         src: '/assets/videos/explain/explain_galaxy.mp4',
         poster: '/assets/images/andromeda_galaxy.jpg',
         credit: 'NASA/SOFIA',
-        topics: ['galaxy', 'deepspace', 'gallery']
+        topics: ['galaxy', 'deepspace', 'gallery'],
+        context: 'deepspace'
     },
     {
         title: '哈勃太空望远镜 · 维修任务 4 概览',
@@ -70,7 +77,8 @@ export default [
         src: '/assets/videos/explain/explain_hubble.mp4',
         poster: '/assets/images/hubble_deep_field.jpg',
         credit: 'NASA',
-        topics: ['gallery', 'telescope', 'constellation']
+        topics: ['gallery', 'telescope', 'constellation'],
+        context: 'gallery'
     },
     {
         title: '詹姆斯·韦伯望远镜的十大事实',
@@ -79,6 +87,7 @@ export default [
         src: '/assets/videos/explain/explain_webb.mp4',
         poster: '/assets/images/jwst_deep_field.jpg',
         credit: 'NASA',
-        topics: ['timeline', 'telescope', 'deepspace']
+        topics: ['timeline', 'telescope', 'deepspace'],
+        context: 'timeline'
     }
 ];

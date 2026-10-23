@@ -84,7 +84,7 @@ const BH_STATS = [
                 </router-link>
             </div>
 
-            <VideoSection topic="star" title="恒星与望远镜科普视频" />
+            <VideoSection context="star" title="恒星的一生科幻视频" />
         </div>
 
         <!-- 黑洞 -->
@@ -111,7 +111,7 @@ const BH_STATS = [
                 </div>
             </div>
 
-            <VideoSection topic="blackhole" title="黑洞科普视频" />
+            <VideoSection context="blackhole" title="黑洞科普视频" />
         </div>
         <BookSection topic="encyclopedia" />
     </div>

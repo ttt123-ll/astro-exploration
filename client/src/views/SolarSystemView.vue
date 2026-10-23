@@ -43,7 +43,7 @@ const fmt = n => Number(n).toLocaleString('zh-CN');
             </router-link>
         </div>
 
-        <VideoSection topic="solar" title="太阳系科普视频" />
+        <VideoSection context="solar" title="太阳系科普视频" />
         <BookSection topic="solar" />
     </div>
 </template>

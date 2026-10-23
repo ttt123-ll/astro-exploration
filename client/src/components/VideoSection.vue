@@ -3,12 +3,14 @@ import { computed } from 'vue';
 import videos from '../data/videos';
 
 const props = defineProps({
-    topic: { type: String, required: true },
+    /* 页面上下文：与 videos.js 中每个视频唯一的 context 对应；
+       没有匹配视频时整段自动隐藏（各页面不重复复用同一个视频） */
+    context: { type: String, required: true },
     title: { type: String, default: '科普讲解视频' },
-    limit: { type: Number, default: 4 }
+    limit: { type: Number, default: 1 }
 });
 
-const list = computed(() => videos.filter(v => (v.topics || []).includes(props.topic)).slice(0, props.limit));
+const list = computed(() => videos.filter(v => v.context === props.context).slice(0, props.limit));
 </script>
 
 <template>

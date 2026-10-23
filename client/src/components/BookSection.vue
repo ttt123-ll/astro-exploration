@@ -12,7 +12,7 @@ const props = defineProps({
     topic: { type: String, required: true },
     title: { type: String, default: '' },
     desc: { type: String, default: '' },
-    limit: { type: Number, default: 0 }
+    limit: { type: Number, default: 3 }
 });
 
 const conf = computed(() => PAGE_BOOKS[props.topic] || { title: '延伸阅读', desc: '', books: [] });
@@ -88,12 +88,14 @@ onBeforeUnmount(() => {
                 <span class="title-icon"><i class="fas fa-book-open"></i></span>{{ heading }}
             </h2>
             <p class="section-subtitle">{{ subtitle }}</p>
+            <span class="books-count">精选 {{ list.length }} 本</span>
         </div>
         <div class="books-wrap">
             <button v-if="scrollable" class="books-arrow prev" @click="scroll(-1)" aria-label="上一本"><i class="fas fa-chevron-left"></i></button>
             <div class="books-track" ref="trackRef"
                  @mousedown="dragStart" @mousemove="dragMove" @mouseup="dragEnd" @mouseleave="dragEnd">
-                <div v-for="b in list" :key="b.id" class="book-card">
+                <div v-for="(b, bi) in list" :key="b.id" class="book-card">
+                    <span class="book-idx">0{{ bi + 1 }}</span>
                     <!-- 排版式书封：竖排书名 + 作者 + 装饰线，更接近真实书籍 -->
                     <div class="book-cover" :style="{ '--bc-color': b.color }">
                         <span class="bc-topline"></span>
@@ -116,6 +118,48 @@ onBeforeUnmount(() => {
 <style scoped>
 /* 只补充布局间距，卡片样式复用全局 .books-strip / .book-card */
 .book-section { margin-top: 3.2rem; }
+
+/* 精选数量标签 */
+.books-count {
+    margin-left: auto;
+    font-size: 0.72rem;
+    color: var(--color-cyan);
+    border: 1px solid rgba(159, 212, 248, 0.3);
+    background: rgba(159, 212, 248, 0.08);
+    padding: 0.12rem 0.6rem;
+    border-radius: 50px;
+    white-space: nowrap;
+}
+
+/* 卡片层次与编号 */
+.book-card {
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.book-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(159, 212, 248, 0.28);
+}
+.book-idx {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 2;
+    font-family: var(--font-title);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: rgba(207, 224, 248, 0.75);
+    background: rgba(6, 10, 20, 0.55);
+    border: 1px solid rgba(159, 212, 248, 0.22);
+    border-radius: 50px;
+    padding: 0.05rem 0.42rem;
+}
+.book-intro {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
 
 /* —— 排版式书封 —— */
 .book-cover {
