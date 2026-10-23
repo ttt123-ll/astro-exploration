@@ -169,6 +169,24 @@ function handleNavigate(msg, action) {
     }, 600);
 }
 
+/* 快捷卡片：点击即向助手提问（复用同一套对话流程） */
+function quickAsk(q) {
+    if (sending.value) return;
+    send(q);
+}
+
+const navOpen = ref(false);
+const NAV_LINKS = [
+    { to: '/', label: '首页', icon: 'fa-house', desc: '新闻与推荐' },
+    { to: '/encyclopedia', label: '天文百科', icon: 'fa-book', desc: '恒星·黑洞' },
+    { to: '/constellations', label: '四季星座', icon: 'fa-star', desc: '当季天象台' },
+    { to: '/gallery', label: '星空图集', icon: 'fa-images', desc: '望远镜影像' },
+    { to: '/deep-space', label: '深空天体', icon: 'fa-galaxy', desc: '星云·星系' },
+    { to: '/timeline', label: '宇宙时间线', icon: 'fa-clock', desc: '138 亿年' },
+    { to: '/videos', label: '科普视频', icon: 'fa-circle-play', desc: 'NASA 讲解' },
+    { to: '/download', label: '资源下载', icon: 'fa-download', desc: '离线包·文档' }
+];
+
 async function send(text) {
     const q = (text !== undefined ? text : input.value).trim();
     if (!q || sending.value) return;
@@ -236,25 +254,45 @@ async function send(text) {
             <span class="ai-audience-hint">当前：{{ audienceLabel }}模式，回答的详略与用词会随之调整</span>
         </div>
 
-        <!-- 能力展示 -->
+        <!-- 能力入口：四张卡都可点击 -->
         <div class="ai-caps">
-            <div class="ai-cap">
+            <button class="ai-cap ai-cap-btn" type="button" :disabled="sending"
+                    @click="quickAsk('现在的月相适合观星吗？')">
                 <i class="fas fa-moon"></i>
-                <div><b>月相计算</b><span>实时月相与观星建议</span></div>
-            </div>
-            <div class="ai-cap">
+                <div><b>月相计算</b><span>点击计算：今晚月相与观星建议</span></div>
+            </button>
+            <button class="ai-cap ai-cap-btn" type="button" :disabled="sending"
+                    @click="quickAsk('今晚能看到什么星座？')">
                 <i class="fas fa-star-and-crescent"></i>
-                <div><b>今夜观星</b><span>当季星座与看点推荐</span></div>
-            </div>
-            <div class="ai-cap">
+                <div><b>今夜观星</b><span>点击查看：当季星座与看点</span></div>
+            </button>
+            <button class="ai-cap ai-cap-btn" type="button" :class="{ active: navOpen }" @click="navOpen = !navOpen">
                 <i class="fas fa-location-arrow"></i>
-                <div><b>页面导航</b><span>一句话直达站内页面</span></div>
-            </div>
-            <button class="ai-cap ai-cap-btn" :class="{ active: gearOpen }" @click="gearOpen = !gearOpen">
+                <div><b>页面导航</b><span>展开站内快捷入口</span></div>
+            </button>
+            <button class="ai-cap ai-cap-btn" type="button" :class="{ active: gearOpen }" @click="gearOpen = !gearOpen">
                 <i class="fas fa-binoculars"></i>
                 <div><b>装备导购</b><span>预算 + 用途 → 专业配置方案</span></div>
             </button>
         </div>
+
+        <!-- 页面导航面板 -->
+        <transition name="gear">
+            <div v-if="navOpen" class="ai-gear ai-nav-panel">
+                <div class="ag-head">
+                    <h4><i class="fas fa-location-arrow"></i> 站内快捷导航</h4>
+                    <button class="ag-close" @click="navOpen = false" aria-label="关闭"><i class="fas fa-xmark"></i></button>
+                </div>
+                <div class="ai-nav-grid">
+                    <router-link v-for="n in NAV_LINKS" :key="n.to" :to="n.to" class="ai-nav-item" @click="navOpen = false">
+                        <i class="fas" :class="n.icon"></i>
+                        <b>{{ n.label }}</b>
+                        <span>{{ n.desc }}</span>
+                    </router-link>
+                </div>
+                <p class="nav-tip"><i class="fas fa-circle-info"></i> 也可以直接问我「带我去看木星」，我会自动跳转</p>
+            </div>
+        </transition>
 
         <!-- 装备导购面板 -->
         <transition name="gear">

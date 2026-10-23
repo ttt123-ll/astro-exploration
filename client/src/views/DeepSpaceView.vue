@@ -100,7 +100,7 @@ const typeCount = computed(() => {
             </router-link>
         </div>
 
-        <VideoSection topic="deepspace" title="深空与望远镜科普视频" />
+        <VideoSection context="deepspace" title="深空天体科普视频" />
         <BookSection topic="deep" />
     </div>
 </template>

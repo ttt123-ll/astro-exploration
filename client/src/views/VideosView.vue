@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { useRouter } from 'vue-router';
 import videos from '../data/videos';
 import PageHeader from '../components/PageHeader.vue';
 import BookSection from '../components/BookSection.vue';
@@ -7,6 +8,14 @@ import BookSection from '../components/BookSection.vue';
 /* ===================== 视频懒加载 =====================
    初始只显示封面（poster），进入视口后才真正加载视频数据，
    避免一次请求 9 个 mp4 拖慢首屏。 */
+const router = useRouter();
+function goBack() {
+    // Vue Router 会在 history.state.back 记录上一页；直接打开本页时为空 → 回首页
+    const st = window.history.state;
+    if (st && st.back) router.back();
+    else router.push('/');
+}
+
 const cardRefs = ref([]);
 let observer = null;
 
@@ -48,6 +57,10 @@ onBeforeUnmount(() => { if (observer) observer.disconnect(); });
 
 <template>
     <div class="container">
+        <!-- 返回键：有历史记录则返回上一页，否则回首页 -->
+        <button class="page-back" type="button" @click="goBack">
+            <i class="fas fa-arrow-left"></i> 返回
+        </button>
         <PageHeader kicker="EXPLAINER VIDEOS" title="科普讲解视频" icon="fa-circle-play" deco="nebula"
                     :stats="[{ v: String(videos.length), l: '官方视频' }, { v: 'NASA', l: '素材来源' }, { v: '公有领域', l: '授权类型' }]"
                     subtitle="精选 NASA 官方讲解视频（公有领域），带你直观了解黑洞、哈勃与韦伯望远镜的奥秘。" />
@@ -84,6 +97,25 @@ onBeforeUnmount(() => { if (observer) observer.disconnect(); });
 </template>
 
 <style scoped>
+.page-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 1.1rem 0 0.2rem;
+    padding: 0.42rem 0.95rem;
+    border-radius: 50px;
+    border: 1px solid rgba(159, 212, 248, 0.28);
+    background: rgba(10, 16, 32, 0.6);
+    color: var(--color-text-secondary);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.28s ease;
+}
+.page-back:hover {
+    color: var(--color-cyan);
+    border-color: var(--color-cyan);
+    transform: translateX(-3px);
+}
 .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.8rem; }
 .video-card {
     background: var(--bg-card);

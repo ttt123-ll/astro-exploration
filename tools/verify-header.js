@@ -1,7 +1,7 @@
 // 校验增强版页头：每页有 kicker/标题/统计卡，且无 JS 错误
 const puppeteer = require('F:/天文科普/tools/node_modules/puppeteer-core');
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
-const BASE = 'http://127.0.0.1:3000';
+const BASE = process.env.BASE || 'http://127.0.0.1:3000';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 let pass = 0, fail = 0;
