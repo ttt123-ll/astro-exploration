@@ -24,7 +24,7 @@ async function auth(req, res, next) {
 
     try {
         const [rows] = await pool.query(
-            'SELECT id, username, role, token_version FROM users WHERE id = ?', [payload.id]
+            'SELECT id, username, email, role, token_version FROM users WHERE id = ?', [payload.id]
         );
         if (!rows.length) return res.status(401).json({ ok: false, error: 'unauthorized' });
         // 令牌版本校验：退出登录后旧 token 立即失效
@@ -32,7 +32,7 @@ async function auth(req, res, next) {
         if ((payload.tv || 0) !== (u.token_version || 0)) {
             return res.status(401).json({ ok: false, error: 'unauthorized' });
         }
-        req.user = { id: u.id, username: u.username, role: u.role };
+        req.user = { id: u.id, username: u.username, email: u.email || '', role: u.role };
         next();
     } catch (e) {
         next(e);

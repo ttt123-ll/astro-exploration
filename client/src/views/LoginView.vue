@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from '../store/auth';
 import { useUi } from '../store/ui';
+import ForgotPasswordDialog from '../components/ForgotPasswordDialog.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -14,6 +15,7 @@ const password = ref('');
 const showPw = ref(false);
 const caps = ref(false);
 const loading = ref(false);
+const forgotOpen = ref(false);
 
 async function submit() {
     if (!username.value.trim() || !password.value) { ui.toastMsg('请填写用户名和密码', 'error'); return; }
@@ -33,7 +35,7 @@ function demo() {
     password.value = 'admin123';
     ui.toastMsg('演示账号已填充，点击「登录」即可进入');
 }
-function forgot() { ui.toastMsg('请联系管理员重置密码（默认 admin / admin123）', 'error'); }
+function forgot() { forgotOpen.value = true; }
 </script>
 
 <template>
@@ -85,4 +87,6 @@ function forgot() { ui.toastMsg('请联系管理员重置密码（默认 admin /
             </div>
         </div>
     </div>
+
+    <ForgotPasswordDialog v-model="forgotOpen" />
 </template>
