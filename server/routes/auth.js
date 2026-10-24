@@ -112,24 +112,23 @@ router.post('/register', authLimiter, wrap(async (req, res) => {
     }
 }));
 
-/* 忘记密码：向绑定邮箱发送 6 位验证码 */
+/* 忘记密码：校验邮箱是否已注册，并生成 6 位验证码（页面弹窗展示） */
 router.post('/forgot-password', authLimiter, wrap(async (req, res) => {
     const email = normalizeEmail(req.body.email);
     if (!EMAIL_RE.test(email)) {
         return res.status(400).json({ ok: false, error: '请输入正确的邮箱地址' });
     }
-    /* 统一话术，避免通过接口判断邮箱是否注册 */
-    const generic = { ok: true, message: '如果该邮箱已注册，验证码邮件已发送，请查收（10 分钟内有效）' };
 
     const [users] = await pool.query('SELECT id, username, email FROM users WHERE email = ?', [email]);
     const user = users[0];
-    if (!user) return res.json(generic);
+    /* 按需求：未找到对应邮箱时明确提示「没有该用户」 */
+    if (!user) return res.status(404).json({ ok: false, error: '没有该用户' });
 
     const [[last]] = await pool.query(
         'SELECT created_at FROM password_resets WHERE email = ? ORDER BY id DESC LIMIT 1', [email]
     );
     if (last && Date.now() - new Date(last.created_at).getTime() < 60 * 1000) {
-        return res.status(429).json({ ok: false, error: '发送太频繁，请 60 秒后再试' });
+        return res.status(429).json({ ok: false, error: '验证码已生成，请 60 秒后再获取' });
     }
 
     const code = genCode();
@@ -140,19 +139,21 @@ router.post('/forgot-password', authLimiter, wrap(async (req, res) => {
     );
     await pool.query('DELETE FROM password_resets WHERE expires_at < DATE_SUB(NOW(), INTERVAL 1 DAY)');
 
-    try {
-        const mail = await sendCodeMail(email, code, 'reset');
-        res.json({
-            ...generic,
-            dev: !!mail.dev,
-            /* 未配置 SMTP 时把验证码回传，方便本地/答辩演示；配置 SMTP 后不会出现在响应中 */
-            devCode: mail.dev ? code : undefined,
-            expiresIn: 600
-        });
-    } catch (e) {
-        log.error('forgot_mail_failed', { email, message: e.message });
-        res.status(502).json({ ok: false, error: '验证码邮件发送失败，请稍后重试' });
+    /* 可选增强：配置了 SMTP 时同时真实发信（不影响页面弹窗展示验证码） */
+    if (config.mail.enabled) {
+        try {
+            await sendCodeMail(email, code, 'reset');
+        } catch (e) {
+            log.error('forgot_mail_failed', { email, message: e.message });
+        }
     }
+
+    res.json({
+        ok: true,
+        code,
+        expiresIn: 600,
+        message: '验证码已生成，请按弹窗提示完成验证（10 分钟内有效）'
+    });
 }));
 
 /* 重置密码：校验邮箱验证码后更新密码 */
@@ -181,11 +182,17 @@ router.post('/reset-password', authLimiter, wrap(async (req, res) => {
         return res.status(400).json({ ok: false, error: '验证码不正确' });
     }
 
+    /* 新密码不能与原密码相同 */
+    const [[cur]] = await pool.query('SELECT password_hash FROM users WHERE id = ?', [rec.user_id]);
+    if (cur && await bcrypt.compare(password, cur.password_hash)) {
+        return res.status(400).json({ ok: false, error: '新密码不能与原密码相同' });
+    }
+
     const hash = await bcrypt.hash(password, 10);
     await pool.query('UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE id = ?', [hash, rec.user_id]);
     await pool.query('UPDATE password_resets SET used = 1 WHERE id = ?', [rec.id]);
     log.info('password_reset', { email });
-    res.json({ ok: true, message: '密码已重置，请使用新密码登录' });
+    res.json({ ok: true, message: '密码修改成功，请使用新密码登录' });
 }));
 
 /* 登录 */
