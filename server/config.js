@@ -72,7 +72,10 @@ module.exports = {
     ai: {
         apiKey: process.env.AI_API_KEY || '',
         baseUrl: process.env.AI_BASE_URL || 'https://api.deepseek.com/v1',
-        model: process.env.AI_MODEL || 'deepseek-chat'
+        model: process.env.AI_MODEL || 'deepseek-chat',
+        /* 前端可切换的模型白名单（第一个为默认） */
+        models: (process.env.AI_MODELS || 'deepseek-chat,deepseek-reasoner')
+            .split(',').map(s => s.trim()).filter(Boolean)
     },
 
     /* 向量检索（可选）：OpenAI 兼容 /embeddings 接口；不配置则使用纯词法检索 */
