@@ -65,7 +65,6 @@ const check = (n, c, e) => {
     await sleep(1200);
     check('点击分组条目可跳转', /\/encyclopedia/.test(p.url()), p.url());
     const active = await p.evaluate(() => {
-        const g = document.querySelector('.nav-group.open .nav-group-btn');
         const btn = Array.from(document.querySelectorAll('.nav-group-btn')).find(x => x.classList.contains('active'));
         return { activeText: btn?.textContent.replace(/\s+/g, ' ').trim() };
     });
