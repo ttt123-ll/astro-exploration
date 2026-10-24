@@ -32,11 +32,35 @@ async function init() {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 username VARCHAR(20) NOT NULL UNIQUE,
                 password_hash VARCHAR(100) NOT NULL,
+                email VARCHAR(120) NULL UNIQUE,
                 role ENUM('user','admin') NOT NULL DEFAULT 'user',
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
+                /* 旧库平滑迁移：补充 email 列与唯一索引 */
+        try {
+            await c.query('ALTER TABLE users ADD COLUMN email VARCHAR(120) NULL');
+        } catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') throw e; }
+        try {
+            await c.query('ALTER TABLE users ADD UNIQUE KEY uk_users_email (email)');
+        } catch (e) { if (e.code !== 'ER_DUP_KEYNAME') throw e; }
+        /* 忘记密码：邮箱验证码记录 */
         await c.query(`
+            CREATE TABLE IF NOT EXISTS password_resets (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                email VARCHAR(120) NOT NULL,
+                code_hash CHAR(64) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                used TINYINT NOT NULL DEFAULT 0,
+                attempts TINYINT NOT NULL DEFAULT 0,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                KEY idx_reset_email (email),
+                KEY idx_reset_expires (expires_at),
+                CONSTRAINT fk_resets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+await c.query(`
             CREATE TABLE IF NOT EXISTS scores (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NOT NULL,

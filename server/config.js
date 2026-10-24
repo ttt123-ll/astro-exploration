@@ -81,6 +81,19 @@ module.exports = {
             .split(',').map(s => s.trim()).filter(Boolean)
     },
 
+    /* 邮箱验证码（注册绑定邮箱 / 忘记密码）：
+       配置 SMTP_* 后真实发信；未配置时自动进入开发模式（验证码打印日志并随接口返回，便于演示） */
+    mail: {
+        host: process.env.SMTP_HOST || '',
+        port: Number(process.env.SMTP_PORT || 465),
+        secure: process.env.SMTP_SECURE !== '0',
+        user: process.env.SMTP_USER || '',
+        pass: process.env.SMTP_PASS || '',
+        from: process.env.MAIL_FROM || '宇宙探索 <no-reply@astro.local>',
+        devMode: process.env.MAIL_DEV_MODE === '1',
+        get enabled() { return !!(this.host && this.user && this.pass); }
+    },
+
     /* 向量检索（可选）：OpenAI 兼容 /embeddings 接口；不配置则使用纯词法检索 */
     embed: {
         url: process.env.AI_EMBED_URL || '',

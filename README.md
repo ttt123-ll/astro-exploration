@@ -349,6 +349,44 @@ npm run dev:client        # 终端 2：http://127.0.0.1:5173（已代理 /api）
 node tools/verify-visual.js --shots   # 走查并输出截图到 shots/walk/
 ```
 
+## 邮箱绑定与找回密码（2026-10）
+
+### 注册绑定邮箱
+
+注册时**必须填写邮箱**（格式校验 + 全站唯一），用于账号找回；注册成功即完成绑定。
+
+### 忘记密码
+
+登录页点击「忘记密码？」→ 输入绑定邮箱 → 获取 6 位验证码 → 设置新密码：
+
+| 环节 | 实现 |
+|---|---|
+| 发送验证码 | 6 位随机数字，HMAC 哈希入库，**10 分钟有效**；同一邮箱 **60 秒**内不可重复发送 |
+| 防枚举 | 邮箱未注册时返回同样的提示，不暴露账号是否存在 |
+| 校验 | 最多尝试 5 次；验证码一次性使用，成功后立即失效 |
+| 重置 | bcrypt 重新加密密码，同时 `token_version + 1` 使旧登录态全部失效 |
+| 邮件 | 配置 `SMTP_HOST / SMTP_USER / SMTP_PASS` 即真实发信（nodemailer） |
+
+### 未配置 SMTP 时（本地/答辩演示）
+
+服务端自动进入开发模式：验证码打印在日志，并在接口响应与页面弹窗中直接显示 **开发模式验证码**，方便演示完整流程；
+配置 SMTP 后验证码不会再出现在接口里。可用 `MAIL_DEV_MODE=1` 强制开发模式（仅演示用）。
+
+```bash
+# .env 示例
+SMTP_HOST=smtp.example.com
+SMTP_PORT=465
+SMTP_SECURE=1
+SMTP_USER=no-reply@example.com
+SMTP_PASS=授权码
+MAIL_FROM=宇宙探索 <no-reply@example.com>
+# 仅本地演示：未配置 SMTP 时自动生效；确认配置无误后生产环境请勿开启 MAIL_DEV_MODE
+MAIL_DEV_MODE=
+```
+
+> 数据库迁移自动完成：启动时给 `users` 表补 `email` 列与唯一索引，并创建 `password_resets` 表（旧库无需手动改表）。
+> 自动化验证：`node tools/verify-auth-email.js`（23 项，含页面流程）。
+
 ## 内容事实校订（2026-10）
 
 答辩前对会被 RAG 复述的高风险表述做了校对，修正三处（含 3D 投影页的同源文案）：

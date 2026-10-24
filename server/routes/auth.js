@@ -6,6 +6,8 @@ const crypto = require('crypto');
 const config = require('../config');
 const { pool } = require('../db');
 const { auth, extractToken } = require('../middleware/auth');
+const { sendCodeMail } = require('../mailer');
+const log = require('../logger');
 const { authLimiter } = require('../middleware/security');
 const wrap = require('../asyncRoute');
 
@@ -20,7 +22,17 @@ function sign(user) {
 }
 
 function publicUser(u) {
-    return { id: u.id, username: u.username, role: u.role, created_at: u.created_at };
+    return { id: u.id, username: u.username, email: u.email || '', role: u.role, created_at: u.created_at };
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+function normalizeEmail(v) { return String(v || '').trim().toLowerCase(); }
+/* 验证码 HMAC 哈希存储：数据库泄露也无法直接反推验证码 */
+function codeHash(code) {
+    return crypto.createHmac('sha256', config.jwtSecret).update('mail-code:' + code).digest('hex');
+}
+function genCode() {
+    return String(crypto.randomInt(100000, 1000000));
 }
 
 function setAuthCookie(res, token, username) {
@@ -63,10 +75,14 @@ function verifyCaptcha(c) {
 /* 注册 */
 router.post('/register', authLimiter, wrap(async (req, res) => {
     const username = String(req.body.username || '').trim();
+    const email = normalizeEmail(req.body.email);
     const password = String(req.body.password || '');
 
     if (!/^[\w\u4e00-\u9fa5]{3,20}$/.test(username)) {
         return res.status(400).json({ ok: false, error: '用户名需为 3-20 位中文、字母、数字或下划线' });
+    }
+    if (!EMAIL_RE.test(email)) {
+        return res.status(400).json({ ok: false, error: '请填写正确的邮箱地址（用于找回密码）' });
     }
     if (password.length < 8) {
         return res.status(400).json({ ok: false, error: '密码至少需要 8 位' });
@@ -77,8 +93,10 @@ router.post('/register', authLimiter, wrap(async (req, res) => {
 
     try {
         const hash = await bcrypt.hash(password, 10);   // 异步，不阻塞事件循环
+        const [exist] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
+        if (exist.length) return res.status(409).json({ ok: false, error: '该邮箱已被其他账号绑定' });
         const [r] = await pool.query(
-            'INSERT INTO users (username, password_hash) VALUES (?, ?)', [username, hash]
+            'INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)', [username, hash, email]
         );
         const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [r.insertId]);
         const user = rows[0];
@@ -86,9 +104,88 @@ router.post('/register', authLimiter, wrap(async (req, res) => {
         setAuthCookie(res, token, user.username);
         res.json({ ok: true, token, user: publicUser(user) });
     } catch (e) {
-        if (e.code === 'ER_DUP_ENTRY') return res.status(409).json({ ok: false, error: '该用户名已被注册' });
+        if (e.code === 'ER_DUP_ENTRY') {
+            const msg = /email/.test(e.sqlMessage || '') ? '该邮箱已被其他账号绑定' : '该用户名已被注册';
+            return res.status(409).json({ ok: false, error: msg });
+        }
         throw e;
     }
+}));
+
+/* 忘记密码：向绑定邮箱发送 6 位验证码 */
+router.post('/forgot-password', authLimiter, wrap(async (req, res) => {
+    const email = normalizeEmail(req.body.email);
+    if (!EMAIL_RE.test(email)) {
+        return res.status(400).json({ ok: false, error: '请输入正确的邮箱地址' });
+    }
+    /* 统一话术，避免通过接口判断邮箱是否注册 */
+    const generic = { ok: true, message: '如果该邮箱已注册，验证码邮件已发送，请查收（10 分钟内有效）' };
+
+    const [users] = await pool.query('SELECT id, username, email FROM users WHERE email = ?', [email]);
+    const user = users[0];
+    if (!user) return res.json(generic);
+
+    const [[last]] = await pool.query(
+        'SELECT created_at FROM password_resets WHERE email = ? ORDER BY id DESC LIMIT 1', [email]
+    );
+    if (last && Date.now() - new Date(last.created_at).getTime() < 60 * 1000) {
+        return res.status(429).json({ ok: false, error: '发送太频繁，请 60 秒后再试' });
+    }
+
+    const code = genCode();
+    const expires = new Date(Date.now() + 10 * 60 * 1000);
+    await pool.query(
+        'INSERT INTO password_resets (user_id, email, code_hash, expires_at) VALUES (?, ?, ?, ?)',
+        [user.id, email, codeHash(code), expires]
+    );
+    await pool.query('DELETE FROM password_resets WHERE expires_at < DATE_SUB(NOW(), INTERVAL 1 DAY)');
+
+    try {
+        const mail = await sendCodeMail(email, code, 'reset');
+        res.json({
+            ...generic,
+            dev: !!mail.dev,
+            /* 未配置 SMTP 时把验证码回传，方便本地/答辩演示；配置 SMTP 后不会出现在响应中 */
+            devCode: mail.dev ? code : undefined,
+            expiresIn: 600
+        });
+    } catch (e) {
+        log.error('forgot_mail_failed', { email, message: e.message });
+        res.status(502).json({ ok: false, error: '验证码邮件发送失败，请稍后重试' });
+    }
+}));
+
+/* 重置密码：校验邮箱验证码后更新密码 */
+router.post('/reset-password', authLimiter, wrap(async (req, res) => {
+    const email = normalizeEmail(req.body.email);
+    const code = String(req.body.code || '').trim();
+    const password = String(req.body.password || '');
+
+    if (!EMAIL_RE.test(email)) return res.status(400).json({ ok: false, error: '请输入正确的邮箱地址' });
+    if (!/^\d{6}$/.test(code)) return res.status(400).json({ ok: false, error: '验证码为 6 位数字' });
+    if (password.length < 8) return res.status(400).json({ ok: false, error: '密码至少需要 8 位' });
+
+    const [rows] = await pool.query(
+        'SELECT * FROM password_resets WHERE email = ? AND used = 0 ORDER BY id DESC LIMIT 1', [email]
+    );
+    const rec = rows[0];
+    if (!rec) return res.status(400).json({ ok: false, error: '验证码已失效，请重新获取' });
+    if (new Date(rec.expires_at).getTime() < Date.now()) {
+        return res.status(400).json({ ok: false, error: '验证码已过期，请重新获取' });
+    }
+    if (rec.attempts >= 5) {
+        return res.status(429).json({ ok: false, error: '尝试次数过多，请重新获取验证码' });
+    }
+    if (rec.code_hash !== codeHash(code)) {
+        await pool.query('UPDATE password_resets SET attempts = attempts + 1 WHERE id = ?', [rec.id]);
+        return res.status(400).json({ ok: false, error: '验证码不正确' });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+    await pool.query('UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE id = ?', [hash, rec.user_id]);
+    await pool.query('UPDATE password_resets SET used = 1 WHERE id = ?', [rec.id]);
+    log.info('password_reset', { email });
+    res.json({ ok: true, message: '密码已重置，请使用新密码登录' });
 }));
 
 /* 登录 */
@@ -122,7 +219,7 @@ router.post('/logout', wrap(async (req, res) => {
 
 /* 当前用户 */
 router.get('/me', auth, (req, res) => {
-    res.json({ ok: true, user: { id: req.user.id, username: req.user.username, role: req.user.role } });
+    res.json({ ok: true, user: { id: req.user.id, username: req.user.username, email: req.user.email || '', role: req.user.role } });
 });
 
 module.exports = router;

@@ -10,6 +10,7 @@ const auth = useAuth();
 const ui = useUi();
 
 const username = ref('');
+const email = ref('');
 const password = ref('');
 const password2 = ref('');
 const showPw = ref(false);
@@ -42,8 +43,11 @@ const strength = computed(() => {
 });
 
 async function submit() {
-    if (!username.value.trim() || !password.value || !password2.value) {
+    if (!username.value.trim() || !email.value.trim() || !password.value || !password2.value) {
         ui.toastMsg('请完整填写注册信息', 'error'); return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.value.trim())) {
+        ui.toastMsg('请填写正确的邮箱地址（用于找回密码）', 'error'); return;
     }
     if (password.value.length < 8) { ui.toastMsg('密码至少需要 8 位', 'error'); return; }
     if (password.value !== password2.value) { ui.toastMsg('两次输入的密码不一致', 'error'); return; }
@@ -53,6 +57,7 @@ async function submit() {
     try {
         await auth.register({
             username: username.value.trim(),
+            email: email.value.trim().toLowerCase(),
             password: password.value,
             captcha: { ...captcha.value, answer: Number(captchaAnswer.value) }
         });
@@ -80,7 +85,7 @@ async function submit() {
                 <h2 class="auth-slogan">加入星际探索者行列<br>你的名字将闪耀榜单</h2>
                 <ul class="auth-bullets">
                     <li><i class="fas fa-rocket"></i> 30 秒完成注册</li>
-                    <li><i class="fas fa-shield-halved"></i> 密码加密存储</li>
+                    <li><i class="fas fa-envelope"></i> 绑定邮箱可自助找回密码</li>
                     <li><i class="fas fa-star"></i> 即刻开始答题上榜</li>
                 </ul>
             </div>
@@ -92,6 +97,11 @@ async function submit() {
                     <div class="input-wrap">
                         <i class="fas fa-user input-ico"></i>
                         <input class="sys-input" v-model="username" autocomplete="username" placeholder="3-20 位中文、字母、数字或下划线" maxlength="20">
+                    </div>
+                    <label class="sys-label"><i class="fas fa-envelope"></i> 邮箱（用于找回密码）</label>
+                    <div class="input-wrap">
+                        <i class="fas fa-envelope input-ico"></i>
+                        <input class="sys-input" v-model="email" type="email" autocomplete="email" placeholder="name@example.com" maxlength="120">
                     </div>
                     <label class="sys-label"><i class="fas fa-lock"></i> 密码</label>
                     <div class="input-wrap">

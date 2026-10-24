@@ -48,7 +48,7 @@ router.get('/news', (req, res) => {
 /* 账号：只读游客态 */
 router.get('/me', (req, res) => res.json({ ok: true, demo: true, user: null }));
 router.post('/logout', (req, res) => res.json({ ok: true, demo: true }));
-router.all(['/login', '/register'], (req, res) => res.status(200).json({ ok: false, demo: true, error: DEMO_MSG }));
+router.all(['/login', '/register', '/forgot-password', '/reset-password'], (req, res) => res.status(200).json({ ok: false, demo: true, error: DEMO_MSG }));
 router.get('/captcha', (req, res) => res.json({ ok: false, demo: true, error: DEMO_MSG }));
 
 /* 社区数据：空列表 + 提示 */
