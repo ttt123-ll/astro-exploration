@@ -3,6 +3,7 @@ import { ref, reactive, computed, nextTick, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 import PageHeader from '../components/PageHeader.vue';
+import AiKeyDialog from '../components/AiKeyDialog.vue';
 
 const router = useRouter();
 const currentRoute = useRoute();
@@ -19,6 +20,33 @@ function getSessionId() {
 }
 const sessionId = getSessionId();
 
+/* ===================== AI 连接：我的 Key / 站点内置 Key ===================== */
+const KEY_STORAGE = 'astro_ai_key';
+const keyOpen = ref(false);
+const myKey = ref('');
+const siteKey = ref({ available: false, masked: '' });
+
+function readMyKey() {
+    try { myKey.value = localStorage.getItem(KEY_STORAGE) || ''; } catch (e) { myKey.value = ''; }
+}
+const keyState = computed(() => (myKey.value ? 'mine' : siteKey.value.available ? 'site' : 'none'));
+const keyStateLabel = computed(() =>
+    myKey.value ? '我的 Key' : siteKey.value.available ? '站点内置 Key' : '未配置 Key'
+);
+const keyHeaders = computed(() => (myKey.value ? { 'X-AI-Key': myKey.value } : {}));
+
+async function loadKeyStatus() {
+    readMyKey();
+    try {
+        const { data } = await api.get('/chat/status');
+        siteKey.value = { available: !!data.siteKeyAvailable, masked: data.siteKeyMasked || '' };
+    } catch (e) { /* 接口不可用保持默认 */ }
+}
+function onKeyChanged() {
+    readMyKey();
+    loadMode();
+}
+
 /* ===================== 模式与知识库规模 ===================== */
 const mode = ref('llm');
 const kb = ref(null);
@@ -26,7 +54,7 @@ const vector = ref('local');
 const levels = ref([]);
 async function loadMode() {
     try {
-        const { data } = await api.get('/chat/mode');
+        const { data } = await api.get('/chat/mode', { headers: keyHeaders.value });
         mode.value = data.mode || 'llm';
         kb.value = data.kb || null;
         vector.value = data.vector || 'local';
@@ -124,7 +152,7 @@ async function submitGear() {
     }
 }
 
-onMounted(loadMode);
+onMounted(() => { loadMode(); loadKeyStatus(); });
 onMounted(loadGearMeta);
 
 /* ===================== 消息与发送 ===================== */
@@ -260,7 +288,7 @@ async function streamAnswer(q, msg) {
     try {
         const res = await fetch('/api/chat/stream', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...keyHeaders.value },
             body: JSON.stringify({ message: q, sessionId, audience: audience.value })
         });
         if (!res.ok || !res.body) throw new Error('stream unavailable');
@@ -268,7 +296,7 @@ async function streamAnswer(q, msg) {
     } catch (e) {
         // 兜底：不支持流式时取完整回答，再本地逐字显示
         try {
-            const { data } = await api.post('/chat', { message: q, sessionId, audience: audience.value });
+            const { data } = await api.post('/chat', { message: q, sessionId, audience: audience.value }, { headers: keyHeaders.value });
             msg.level = data.level || 2;
             msg.levelLabel = data.levelLabel || '';
             msg.sources = Array.isArray(data.sources) ? data.sources.filter(s => s && s.title) : [];
@@ -337,6 +365,17 @@ async function send(text) {
             <span v-if="levels.length" class="ai-kb ai-levels">
                 <i class="fas fa-layer-group"></i>{{ levels.map(l => l.name).join(' → ') }}
             </span>
+        </div>
+
+        <!-- AI 连接状态：站点内置 Key / 我的 Key -->
+        <div class="ai-keybar">
+            <span class="ai-key-badge" :class="'is-' + keyState">
+                <i class="fas" :class="keyState === 'mine' ? 'fa-key' : keyState === 'site' ? 'fa-cloud' : 'fa-triangle-exclamation'"></i>
+                {{ keyStateLabel }}
+            </span>
+            <button class="ai-key-btn" type="button" @click="keyOpen = true">
+                <i class="fas fa-gear"></i> AI 连接设置
+            </button>
         </div>
 
         <!-- 受众模式：同样的内容，不同的讲法 -->
@@ -532,6 +571,7 @@ async function send(text) {
                 </button>
             </div>
         </div>
+        <AiKeyDialog v-if="keyOpen" @close="keyOpen = false" @changed="onKeyChanged" />
     </div>
 </template>
 

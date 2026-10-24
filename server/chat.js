@@ -33,9 +33,10 @@ function pushTurn(sid, role, content) {
 }
 
 /* ---------- 大模型调用（OpenAI 兼容接口） ---------- */
-async function llmChat(messages, maxTokens = 500) {
-    if (!llmEnabled()) return null;
-    const { apiKey, baseUrl, model } = config.ai;
+async function llmChat(messages, maxTokens = 500, overrideKey = '') {
+    const { apiKey: siteKey, baseUrl, model } = config.ai;
+    const apiKey = overrideKey || siteKey;
+    if (!apiKey) return null;
     try {
         const r = await fetch(baseUrl.replace(/\/+$/, '') + '/chat/completions', {
             method: 'POST',
@@ -129,9 +130,10 @@ const FALLBACK_REPLY =
 const SUGGESTIONS = ['今晚能看到什么星座？', '现在的月相适合观星吗？', '黑洞是怎么形成的？', '带我去看木星'];
 
 /* ---------- 大模型流式调用：边生成边回调，用于 SSE 打字机效果 ---------- */
-async function llmChatStream(messages, maxTokens, onDelta) {
-    if (!llmEnabled()) return false;
-    const { apiKey, baseUrl, model } = config.ai;
+async function llmChatStream(messages, maxTokens, onDelta, overrideKey = '') {
+    const { apiKey: siteKey, baseUrl, model } = config.ai;
+    const apiKey = overrideKey || siteKey;
+    if (!apiKey) return false;
     try {
         const r = await fetch(baseUrl.replace(/\/+$/, '') + '/chat/completions', {
             method: 'POST',
@@ -173,7 +175,8 @@ async function llmChatStream(messages, maxTokens, onDelta) {
  * handlers: { meta(obj), delta(text), done(obj) }
  * 装备/工具/本地检索分支把完整文本作为一段 delta 发送，前端统一做逐字打字机；
  * 大模型分支按 token 实时回调，前端边收边显示。 */
-async function streamReply(message, sessionId, audienceInput, handlers) {
+async function streamReply(message, sessionId, audienceInput, handlers, opts = {}) {
+    const requestKey = String(opts.apiKey || '');
     const h = handlers || {};
     const meta = h.meta || (() => {});
     const delta = h.delta || (() => {});
@@ -221,7 +224,7 @@ async function streamReply(message, sessionId, audienceInput, handlers) {
     const chunks = rawChunks.filter(c => (c._score || 0) >= MIN_RELEVANCE);
     const sources = chunks.map(c => ({ title: c.title, route: c.route, score: c._score }));
 
-    let level = llmEnabled() ? 1 : 2;
+    let level = (llmEnabled() || requestKey) ? 1 : 2;
     meta({
         level,
         levelLabel: level === 1 ? '大模型生成' : '本地知识库检索',
@@ -244,7 +247,7 @@ async function streamReply(message, sessionId, audienceInput, handlers) {
             { role: 'user', content: (toolNote ? '【工具计算结果】\n' + toolNote + '\n\n' : '') + ctx + q }
         ];
         let streamed = '';
-        const ok = await llmChatStream(messages, 500, t => { streamed += t; delta(t); });
+        const ok = await llmChatStream(messages, 500, t => { streamed += t; delta(t); }, requestKey);
         if (ok && streamed.trim()) {
             const parsed = parseCitations(streamed, sources);
             finish(toolNote + '\n' + parsed.text, {
@@ -278,7 +281,8 @@ async function streamReply(message, sessionId, audienceInput, handlers) {
 }
 
 /* ---------- 主流程 ---------- */
-async function reply(message, sessionId, audienceInput) {
+async function reply(message, sessionId, audienceInput, opts = {}) {
+    const requestKey = String(opts.apiKey || '');
     const audience = normalizeAudience(audienceInput);
     const q = String(message || '').trim().slice(0, 200);
     if (!q) return { ok: false, reply: '请输入你想问的天文问题～', sources: [], level: 3 };
@@ -324,7 +328,7 @@ async function reply(message, sessionId, audienceInput) {
     let level = 2;
 
     // 第 1 级：大模型（配置了 AI_API_KEY 时）
-    if (llmEnabled()) {
+    if (llmEnabled() || requestKey) {
         const ctx = chunks.length
             ? '【资料】\n' + chunks.map((c, i) => `【${i + 1}】${c.title}：${c.text}`).join('\n') + '\n\n'
             : '';
@@ -333,7 +337,7 @@ async function reply(message, sessionId, audienceInput) {
             ...history.slice(-8),
             { role: 'user', content: (toolNote ? '【工具计算结果】\n' + toolNote + '\n\n' : '') + ctx + q }
         ];
-        answer = await llmChat(messages);
+        answer = await llmChat(messages, 500, requestKey);
         if (answer) level = 1;
     }
 

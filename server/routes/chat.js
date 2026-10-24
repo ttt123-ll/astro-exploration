@@ -4,6 +4,7 @@ const { reply, streamReply, usingLLM } = require('../chat');
 const { kbStats } = require('../rag/data');
 const { vectorMode, indexStats } = require('../rag/search');
 const gearAdvisor = require('../rag/gearAdvisor');
+const aiKey = require('../aiKey');
 const wrap = require('../asyncRoute');
 
 const router = express.Router();
@@ -28,6 +29,8 @@ router.get('/chat/mode', (req, res) => {
             { level: 2, name: '本地知识库检索', available: true, note: '词法 + 向量混合检索，离线可用' },
             { level: 3, name: '兜底引导', available: true, note: '无命中时给出推荐问题' }
         ],
+        siteKeyAvailable: !!aiKey.siteKey(),
+        siteKeyMasked: aiKey.maskKey(aiKey.siteKey()),
         vector: vectorMode(),                  // 'api' | 'local'
         index: indexStats(),                   // 向量库：维度 / 知识块数 / 来源(disk|built) / 文件大小
         audiences: gearAdvisor.AUDIENCES,      // 多受众模式
@@ -38,6 +41,22 @@ router.get('/chat/mode', (req, res) => {
         kb: kbStats()
     });
 });
+
+/* ---------- AI 连接：站点内置 Key 状态 + 用户自带 Key 校验 ---------- */
+router.get('/chat/status', (req, res) => {
+    res.json({
+        ok: true,
+        siteKeyAvailable: !!aiKey.siteKey(),
+        siteKeyMasked: aiKey.maskKey(aiKey.siteKey()),
+        model: require('../config').ai.model,
+        baseUrl: require('../config').ai.baseUrl
+    });
+});
+
+router.post('/chat/verify-key', wrap(async (req, res) => {
+    const result = await aiKey.verifyKey(req.body.apiKey);
+    res.json({ ok: true, ...result });
+}));
 
 /* ---------- 装备导购（结构化，供前端表单直接调用） ---------- */
 router.post('/chat/gear', wrap(async (req, res) => {
@@ -55,7 +74,8 @@ router.post('/chat', wrap(async (req, res) => {
     if (message.length > 200) return res.json({ ok: false, reply: '问题有点长，请精简到 200 字以内哦～', sources: [], level: 3 });
     const sessionId = String(req.body.sessionId || '').trim().slice(0, 64) || undefined;
     const audience = ['child', 'amateur', 'pro'].includes(req.body.audience) ? req.body.audience : 'amateur';
-    const result = await reply(message, sessionId, audience);
+    const userKey = aiKey.normalizeKey(req.headers['x-ai-key']);
+    const result = await reply(message, sessionId, audience, { apiKey: userKey });
     res.json(result);
 }));
 
@@ -64,6 +84,7 @@ router.post('/chat/stream', async (req, res) => {
     const message = String(req.body.message || '').trim();
     const sessionId = String(req.body.sessionId || '').trim().slice(0, 64) || undefined;
     const audience = ['child', 'amateur', 'pro'].includes(req.body.audience) ? req.body.audience : 'amateur';
+    const userKey = aiKey.normalizeKey(req.headers['x-ai-key']);
 
     res.writeHead(200, {
         'Content-Type': 'text/event-stream; charset=utf-8',
@@ -96,7 +117,7 @@ router.post('/chat/stream', async (req, res) => {
             meta: o => send({ type: 'meta', ...o }),
             delta: t => send({ type: 'delta', text: t }),
             done: o => send({ type: 'done', ...o })
-        });
+        }, { apiKey: userKey });
     } catch (e) {
         send({ type: 'error', message: '生成失败，请稍后再试' });
     } finally {
