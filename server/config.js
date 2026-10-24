@@ -19,6 +19,8 @@ const crypto = require('crypto');
 })();
 
 const isProd = process.env.NODE_ENV === 'production';
+/* 演示模式：跳过 MySQL，提供只读降级接口（供无 Docker / 无数据库的评审环境） */
+const demoMode = process.env.DEMO_MODE === '1';
 
 /* JWT 密钥：优先环境变量；没有则随机生成并告警（绝不写死） */
 let jwtSecret = process.env.JWT_SECRET;
@@ -35,6 +37,7 @@ const tz = process.env.TZ || 'Asia/Shanghai';
 const tzOffset = process.env.TZ_OFFSET || '+08:00';
 
 module.exports = {
+    demoMode,
     isProd,
     port: Number(process.env.PORT || 3000),
     tz,

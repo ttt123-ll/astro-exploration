@@ -8,6 +8,18 @@ const router = express.Router();
 const startedAt = Date.now();
 
 router.get('/health', wrap(async (req, res) => {
+    // 演示模式不依赖数据库，健康检查直接通过
+    if (require('../config').demoMode) {
+        return res.json({
+            ok: true,
+            status: 'healthy',
+            mode: 'demo',
+            db: 'disabled',
+            uptime: Math.round(process.uptime()),
+            version: require('../../package.json').version,
+            time: new Date().toISOString()
+        });
+    }
     let db = 'down';
     try {
         const [r] = await pool.query('SELECT 1 AS ok');
