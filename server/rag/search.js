@@ -163,8 +163,9 @@ async function search(query, topK = 4) {
 }
 
 function embeddingsReady() {
-    // 兼容旧字段：任一向量通道可用即视为已启用
-    return !!config.embed.enabled || true;
+    /* 语义向量通道是否真的可用：需要配置 AI_EMBED_URL + Key + Model。
+       本地哈希向量库默认常驻（indexStats 可查），但不属于「语义 embeddings」。 */
+    return !!(config.embed && config.embed.enabled);
 }
 
 /** 向量库状态（供 /api/chat/mode 展示与答辩讲解） */

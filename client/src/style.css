@@ -500,7 +500,8 @@ button {
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 4rem 2rem;
+    /* 顶部让出固定导航（含 PageNav/面包屑），避免被导航条遮挡 */
+    padding: calc(var(--nav-h) + 1.3rem) 2rem 4rem;
     position: relative;
     z-index: 1;
 }
@@ -3358,7 +3359,7 @@ html.js .reveal-right.in {
     }
 
     .container {
-        padding: 3rem 1.2rem;
+        padding: calc(var(--nav-h) + 0.9rem) 1.2rem 3rem;
     }
 
     .teaser-options {
@@ -6280,4 +6281,14 @@ a, button, .gallery-item, .feature-card, .planet-card, .type-card, .cons-card, .
     color: var(--color-text-secondary);
     line-height: 1.9;
     font-size: 0.9rem;
+}
+
+/* 移动端太阳系图例换行：避免行星按钮溢出容器被裁切 */
+@media (max-width: 900px) {
+    .solar-legend {
+        flex-wrap: wrap;
+        width: min(340px, 92vw);
+        bottom: -96px;
+        row-gap: 0.35rem;
+    }
 }

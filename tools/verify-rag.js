@@ -6,6 +6,15 @@
  */
 const BASE = process.env.BASE || 'http://127.0.0.1:3000';
 
+/* 服务端工具函数：embeddingsReady 应与实际 embeddings 配置一致（不能恒真） */
+let embeddingsReady = null;
+let embedConfigured = null;
+try {
+    ({ embeddingsReady } = require('../server/rag/search'));
+    const cfg = require('../server/config');
+    embedConfigured = !!(cfg.embed && cfg.embed.enabled);
+} catch (e) { /* 模块不可用时跳过 */ }
+
 /* [查询, 期望来源路由包含的关键字] */
 const LABELED = [
     ['黑洞是怎么形成的？', '/encyclopedia'],
@@ -67,6 +76,10 @@ async function ask(q) {
     check('Hit@1 ≥ 40%', H1 >= 0.4, (H1 * 100).toFixed(0) + '%');
     check('Hit@3 ≥ 70%', H3 >= 0.7, (H3 * 100).toFixed(0) + '%');
     check('MRR ≥ 0.50', MRR >= 0.5, MRR.toFixed(3));
+
+    if (typeof embeddingsReady === 'function') {
+        check('embeddingsReady 与实际配置一致（不恒真）', embeddingsReady() === embedConfigured, { ready: embeddingsReady(), configured: embedConfigured });
+    }
 
     console.log('\n=== 端到端问答可用性 ===');
     const black = await ask('黑洞是怎么形成的？');
