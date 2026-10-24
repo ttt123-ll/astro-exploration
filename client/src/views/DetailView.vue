@@ -18,6 +18,9 @@ const data = computed(() => {
     return g ? (g[key.value] || null) : null;
 });
 
+const headerStats = computed(() => ((data.value && data.value.stats) || []).slice(0, 3)
+    .map(s => ({ v: String(s.value), l: String(s.label) })));
+
 const groupLabel = {
     planet: '太阳系行星', star: '恒星与星系', constellation: '四季星座', galaxy: '恒星与星系',
     blackhole: '黑洞科普', object: '深空天体', telescope: '星空图集'
@@ -98,11 +101,9 @@ const sizeNote = computed(() => {
             <span aria-current="page">{{ data.title }}</span>
         </nav>
 
-        <header class="detail-header">
-            <span class="detail-kicker">{{ groupLabel[group] }} · {{ group.toUpperCase() }}</span>
-            <h1>{{ data.title }}</h1>
-            <p class="subtitle">{{ data.subtitle }}</p>
-        </header>
+        <PageHeader :kicker="groupLabel[group] + ' · ' + group.toUpperCase()"
+                    :title="data.title" :subtitle="data.subtitle"
+                    icon="fa-globe" deco="orbit" :stats="headerStats" />
 
         <div class="detail-layout">
             <!-- 左：正文 -->
@@ -181,23 +182,6 @@ const sizeNote = computed(() => {
 .breadcrumb i { font-size: 0.62rem; opacity: 0.6; }
 .breadcrumb span { color: var(--color-text-secondary); }
 
-/* 页头 */
-.detail-header { padding: 1rem 0 2rem; }
-.detail-kicker {
-    display: inline-block;
-    font-size: 0.72rem;
-    letter-spacing: 0.22em;
-    color: var(--color-cyan);
-    margin-bottom: 0.5rem;
-}
-.detail-header h1 {
-    font-family: var(--font-title);
-    font-size: clamp(2rem, 4vw, 2.9rem);
-    color: var(--color-gold);
-    margin-bottom: 0.4rem;
-    letter-spacing: 0.04em;
-}
-.detail-header .subtitle { color: var(--color-text-muted); font-size: 1rem; font-style: italic; }
 
 /* 双栏布局 */
 .detail-layout {

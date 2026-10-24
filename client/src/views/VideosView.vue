@@ -83,13 +83,9 @@ onBeforeUnmount(() => { if (observer) observer.disconnect(); });
             </div>
         </div>
 
-        <div class="sys-card" style="margin-top:2rem;">
-            <h3 style="font-family:var(--font-title);color:var(--color-gold);font-size:1.05rem;margin-bottom:0.8rem;">
-                <i class="fas fa-circle-info"></i> 版权说明
-            </h3>
-            <p style="color:var(--color-text-secondary);line-height:1.9;font-size:0.92rem;">
-                本页面视频均来自 NASA（美国国家航空航天局）官方媒体库，属于公有领域作品，可自由用于科普与教育用途。视频素材来源：images.nasa.gov。
-            </p>
+        <div class="info-card">
+            <h3><i class="fas fa-circle-info"></i> 版权说明</h3>
+            <p>本页面视频均来自 NASA（美国国家航空航天局）官方媒体库，属于公有领域作品，可自由用于科普与教育用途。视频素材来源：images.nasa.gov。</p>
         </div>
 
         <BookSection topic="explore" />
@@ -97,25 +93,6 @@ onBeforeUnmount(() => { if (observer) observer.disconnect(); });
 </template>
 
 <style scoped>
-.page-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    margin: 1.1rem 0 0.2rem;
-    padding: 0.42rem 0.95rem;
-    border-radius: 50px;
-    border: 1px solid rgba(159, 212, 248, 0.28);
-    background: rgba(10, 16, 32, 0.6);
-    color: var(--color-text-secondary);
-    font-size: 0.82rem;
-    cursor: pointer;
-    transition: all 0.28s ease;
-}
-.page-back:hover {
-    color: var(--color-cyan);
-    border-color: var(--color-cyan);
-    transform: translateX(-3px);
-}
 .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.8rem; }
 .video-card {
     background: var(--bg-card);

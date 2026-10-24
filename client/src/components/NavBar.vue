@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { navLinks } from '../data/site';
+import { navGroups } from '../data/site';
+import { useMobile } from '../composables/useMobile';
 import { useAuth } from '../store/auth';
 import { useUi } from '../store/ui';
 
@@ -13,10 +14,31 @@ const menuOpen = ref(false);
 const scrolled = ref(false);
 
 const isActive = (p) => route.path === p;
+const { isMobile } = useMobile();
+
+/* 分组下拉：桌面 hover/点击，移动端在汉堡菜单内展开 */
+const openGroup = ref(null);
+function toggleGroup(key) {
+    openGroup.value = openGroup.value === key ? null : key;
+}
+function closeMenus() {
+    menuOpen.value = false;
+    openGroup.value = null;
+}
+function groupActive(g) {
+    return g.items.some(i => isActive(i.path));
+}
+function onGroupEsc(e) {
+    if (e.key === 'Escape') openGroup.value = null;
+}
 
 function onScroll() { scrolled.value = window.scrollY > 40; }
 onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }));
+onMounted(() => document.addEventListener('keydown', onGroupEsc));
 onBeforeUnmount(() => window.removeEventListener('scroll', onScroll));
+onBeforeUnmount(() => document.removeEventListener('keydown', onGroupEsc));
+
+watch(() => route.path, () => { openGroup.value = null; menuOpen.value = false; });
 
 function logout() {
     auth.logout();
@@ -42,8 +64,25 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
                 <span>宇宙探索</span>
             </router-link>
             <ul class="nav-links" :class="{ active: menuOpen }">
-                <li v-for="n in navLinks" :key="n.path">
-                    <router-link :to="n.path" :class="{ active: isActive(n.path) }" @click="menuOpen = false">{{ n.label }}</router-link>
+                <li class="nav-home">
+                    <router-link to="/" :class="{ active: isActive('/') }" @click="closeMenus">首页</router-link>
+                </li>
+                <li v-for="g in navGroups" :key="g.key" class="nav-group"
+                    :class="{ open: openGroup === g.key }"
+                    @mouseenter="openGroup = g.key" @mouseleave="openGroup = null">
+                    <button class="nav-group-btn" type="button" :class="{ active: groupActive(g) }"
+                            :aria-expanded="openGroup === g.key" @click="toggleGroup(g.key)">
+                        <i class="fas" :class="g.icon"></i><span>{{ g.label }}</span>
+                        <i class="fas fa-chevron-down nav-group-caret"></i>
+                    </button>
+                    <ul class="nav-drop" v-show="openGroup === g.key || (isMobile && menuOpen)">
+                        <li v-for="it in g.items" :key="it.path">
+                            <router-link :to="it.path" :class="{ active: isActive(it.path) }" @click="closeMenus">
+                                <i class="fas" :class="it.icon"></i>
+                                <span class="nav-drop-text"><b>{{ it.label }}</b><em>{{ it.desc }}</em></span>
+                            </router-link>
+                        </li>
+                    </ul>
                 </li>
                 <!-- 移动端：AI 助手入口（桌面端单列在右侧） -->
                 <li class="nav-mobile-ai">

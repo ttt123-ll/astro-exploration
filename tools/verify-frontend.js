@@ -20,7 +20,9 @@ const check = (n, c, e) => {
     check('游客可看首页（不被强制跳登录）', p.url() === BASE + '/', p.url());
     check('首页有导航栏', await p.evaluate(() => !!document.querySelector('.navbar')));
     const guestNav = await p.evaluate(() => (document.querySelector('.nav-links') || {}).innerText || '');
-    check('游客导航可见（内容站应公开）', guestNav.includes('天文百科') || guestNav.includes('互动社区'), guestNav.slice(0, 40));
+    const guestNavItems = await p.evaluate(() => Array.from(document.querySelectorAll('.nav-drop a')).map(a => a.textContent.replace(/\s+/g, ' ')).join(' '));
+    check('游客导航可见且已分组', ['探索', '观测', '社区'].every(k => guestNav.includes(k)), guestNav.slice(0, 40));
+    check('分组条目包含核心页面', /天文百科/.test(guestNavItems) && /互动社区/.test(guestNavItems), guestNavItems.slice(0, 60));
 
     for (const [path, sel, name] of [
         ['/solar-system', '.planet-card, .planet-grid, .page-header', '太阳系行星'],
