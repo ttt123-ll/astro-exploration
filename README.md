@@ -328,6 +328,27 @@ npm run dev:client        # 终端 2：http://127.0.0.1:5173（已代理 /api）
 
 ---
 
+## 浏览器走查与修复（2026-10）
+
+用 Puppeteer 对 **19 个页面 × 桌面（1440×900）/ 移动（390×844）** 逐页走查，自动检测：JS 错误、横向溢出、
+破图、元素越界、页头/导航缺失、顶部导航遮挡、移动端点击目标尺寸，并验证聊天挂件流式输出。
+
+### 本轮发现并修复
+
+| 问题 | 影响 | 修复 |
+|---|---|---|
+| 页面顶部「返回首页 / 当前位置」被固定导航遮住 | 所有使用 `PageNav` / 面包屑的页面（桌面遮 9px、移动遮 25px） | `.container` 顶部内边距改为 `calc(var(--nav-h) + 1.3rem)`，移动端同步加大 |
+| 首页太阳系图例在手机上溢出被裁切 | 移动端部分行星按钮点不到 | ≤900px 时允许换行并限制宽度 |
+
+### 同时修复
+
+- **`embeddingsReady()` 恒真**：原实现 `return !!config.embed.enabled || true` 永远为真；改为返回真实配置状态，并在 `verify-rag` 中断言「与实际配置一致」
+- **全局聊天挂件未接流式**：抽出 `client/src/utils/streamChat.js`（SSE 解析 + 非流式降级），挂件改为逐字输出 + 闪烁光标 + 来源/级别徽标，支持本地 Key/模型偏好
+
+```bash
+node tools/verify-visual.js --shots   # 走查并输出截图到 shots/walk/
+```
+
 ## 内容事实校订（2026-10）
 
 答辩前对会被 RAG 复述的高风险表述做了校对，修正三处（含 3D 投影页的同源文案）：
@@ -560,8 +581,9 @@ chore: 构建/工具  perf: 性能优化
 | `tools/verify-model.js` | 模型切换：白名单/回退、推理模型、流式 reasoning、界面持久化 | 23 |
 | `tools/verify-content-facts.js` | 内容事实校订：深空场面积、创生之柱假说、参宿四尺寸、quiz 题库合法性 | 20 |
 | `tools/verify-nav-groups.js` | 导航分组（桌面下拉/移动端展开）与老页面主题统一 | 25 |
+| `tools/verify-visual.js` | 浏览器走查：19 页 × 桌面/移动 + 挂件流式（错误/溢出/破图/越界/遮挡） | 230 |
 | `tools/verify-images.js` | 图片资源完整性：无缺失、无水印文字、尺寸合理 | 8 |
-| `tools/verify-rag.js` | RAG 检索评估：Hit@1/Hit@3/MRR + 向量库状态 + 端到端问答 | 14 |
+| `tools/verify-rag.js` | RAG 检索评估：Hit@1/Hit@3/MRR + 向量库状态 + embeddingsReady 一致性 + 端到端问答 | 15 |
 | `tools/verify-gear.js` | 装备导购：元数据、结构化方案、预算约束、三档受众差异、意图识别 | 43 |
 | `tools/verify-ai-gear-ui.js` | AI 界面：受众选择器（含持久化）、导购面板、方案卡、三档回答差异 | 23 |
 

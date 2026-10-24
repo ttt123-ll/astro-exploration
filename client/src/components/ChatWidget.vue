@@ -1,6 +1,7 @@
 <script setup>
-import { ref, nextTick, onMounted } from 'vue';
+import { ref, reactive, nextTick, onMounted } from 'vue';
 import api from '../api';
+import { streamChat, readAiPrefs } from '../utils/streamChat';
 
 const open = ref(false);
 const input = ref('');
@@ -37,29 +38,66 @@ function getWidgetSession() {
 }
 const widgetSessionId = getWidgetSession();
 
+let lastScroll = 0;
+function throttledScroll() {
+    const now = performance.now();
+    if (now - lastScroll > 90) { lastScroll = now; scrollBottom(); }
+}
+
 async function send(text) {
     const q = (text !== undefined ? text : input.value).trim();
     if (!q || sending.value) return;
     input.value = '';
     messages.value.push({ role: 'user', text: q });
+
+    // 响应式对象：流式追加才能实时渲染
+    const botMsg = reactive({ role: 'bot', text: '', typing: true, sources: [], navHint: '', levelLabel: '' });
+    messages.value.push(botMsg);
     scrollBottom();
     sending.value = true;
+
+    const prefs = readAiPrefs();
     try {
-        const { data } = await api.post('/chat', { message: q, sessionId: widgetSessionId });
-        const botMsg = {
-            role: 'bot',
-            text: data.reply || '（没有收到回复）',
-            sources: Array.isArray(data.sources) ? data.sources.filter(s => s && s.title) : [],
-            navHint: ''
-        };
-        /* 页面导航动作：小窗只提示，不自动跳转 */
-        if (data.action && data.action.type === 'navigate' && data.action.label) {
-            botMsg.navHint = '正在带你去' + data.action.label + '…';
-        }
-        messages.value.push(botMsg);
+        const doneInfo = await streamChat({
+            message: q,
+            sessionId: widgetSessionId,
+            model: prefs.model,
+            headers: prefs.headers,
+            onMeta(evt) {
+                if (evt.levelLabel) botMsg.levelLabel = evt.levelLabel;
+                if (Array.isArray(evt.sources)) botMsg.sources = evt.sources;
+                if (evt.action && evt.action.type === 'navigate' && evt.action.label) {
+                    botMsg.navHint = '正在带你去' + evt.action.label + '…';
+                }
+            },
+            onDelta(chunk) {
+                botMsg.text += chunk;
+                throttledScroll();
+            },
+            onDone(evt) {
+                if (Array.isArray(evt.sources) && evt.sources.length) botMsg.sources = evt.sources;
+                if (evt.action && evt.action.type === 'navigate' && evt.action.label) {
+                    botMsg.navHint = '正在带你去' + evt.action.label + '…';
+                }
+            }
+        });
+        if (!botMsg.text && doneInfo && doneInfo.reply) botMsg.text = doneInfo.reply;
+        if (!botMsg.text) botMsg.text = '（没有收到回复）';
     } catch (e) {
-        messages.value.push({ role: 'bot', text: '连接失败，请确认后端服务已启动。' });
+        // 降级：不支持流式时走普通接口
+        try {
+            const { data } = await api.post('/chat', { message: q, sessionId: widgetSessionId, model: prefs.model }, { headers: prefs.headers });
+            botMsg.text = data.reply || '（没有收到回复）';
+            botMsg.sources = Array.isArray(data.sources) ? data.sources.filter(s => s && s.title) : [];
+            botMsg.levelLabel = data.levelLabel || '';
+            if (data.action && data.action.type === 'navigate' && data.action.label) {
+                botMsg.navHint = '正在带你去' + data.action.label + '…';
+            }
+        } catch (e2) {
+            botMsg.text = '连接失败，请确认后端服务已启动。';
+        }
     } finally {
+        botMsg.typing = false;
         sending.value = false;
         scrollBottom();
     }
@@ -90,7 +128,11 @@ function toggle() {
             <div v-for="(m, i) in messages" :key="i" class="chat-msg" :class="m.role">
                 <span v-if="m.role === 'bot'" class="msg-avatar"><i class="fas fa-robot"></i></span>
                 <div class="msg-stack">
-                    <div class="msg-bubble">{{ m.text }}</div>
+                    <div class="msg-bubble" :class="{ 'is-typing': m.typing }">
+                        <template v-if="m.text">{{ m.text }}<span v-if="m.typing" class="cw-cursor" aria-hidden="true"></span></template>
+                        <span v-else class="typing"><span></span><span></span><span></span></span>
+                    </div>
+                    <div v-if="m.levelLabel" class="msg-level">{{ m.levelLabel }}</div>
                     <div v-if="m.sources && m.sources.length" class="msg-sources">
                         <router-link v-for="(s, si) in m.sources" :key="si" class="msg-src" :to="s.route || '/'">
                             <i class="fas fa-book-open"></i><span>{{ s.title }}</span>
@@ -100,10 +142,6 @@ function toggle() {
                         <i class="fas fa-wand-magic-sparkles"></i>{{ m.navHint }}
                     </div>
                 </div>
-            </div>
-            <div v-if="sending" class="chat-msg bot">
-                <span class="msg-avatar"><i class="fas fa-robot"></i></span>
-                <div class="msg-bubble typing"><span></span><span></span><span></span></div>
             </div>
         </div>
 
@@ -122,6 +160,30 @@ function toggle() {
 </template>
 
 <style>
+/* 流式输出：打字光标 */
+.cw-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    margin-left: 2px;
+    vertical-align: -0.15em;
+    background: var(--color-cyan, #9fd8f0);
+    animation: cwBlink 1s steps(2, start) infinite;
+}
+@keyframes cwBlink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.msg-level {
+    display: inline-block;
+    margin-top: 0.3rem;
+    font-size: 0.66rem;
+    color: #c4b5fd;
+    border: 1px solid rgba(196, 181, 253, 0.35);
+    border-radius: 50px;
+    padding: 0.05rem 0.45rem;
+}
+@media (prefers-reduced-motion: reduce) {
+    .cw-cursor { animation: none; }
+}
+
 .chat-fab {
     position: fixed;
     left: 24px;
