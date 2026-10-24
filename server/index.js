@@ -5,7 +5,11 @@ const log = require('./logger');
 const { init } = require('./db');
 
 (async () => {
-    await init();
+    if (config.demoMode) {
+        log.info('demo_mode', { note: '跳过 MySQL 初始化，使用只读降级接口' });
+    } else {
+        await init();
+    }
 
     const server = app.listen(config.port, () => {
         log.info('server_started', {

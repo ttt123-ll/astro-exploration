@@ -12,38 +12,6 @@ export const navLinks = [
 ];
 
 
-/* 分组导航：12+ 项按「探索 / 观测 / 社区」归类，桌面端下拉、移动端分组展开 */
-export const navGroups = [
-    {
-        key: 'explore', label: '探索', icon: 'fa-compass',
-        items: [
-            { label: '天文百科', path: '/encyclopedia', icon: 'fa-book', desc: '恒星 · 星系 · 黑洞' },
-            { label: '太阳系行星', path: '/solar-system', icon: 'fa-sun', desc: '八大行星概览' },
-            { label: '四季星座', path: '/constellations', icon: 'fa-star', desc: '当季天象台' },
-            { label: '星空图集', path: '/gallery', icon: 'fa-images', desc: '望远镜实拍影像' },
-            { label: '深空天体', path: '/deep-space', icon: 'fa-galaxy', desc: '星云 · 星团 · 星系' },
-            { label: '宇宙时间线', path: '/timeline', icon: 'fa-hourglass-half', desc: '138 亿年编年史' }
-        ]
-    },
-    {
-        key: 'observe', label: '观测', icon: 'fa-binoculars',
-        items: [
-            { label: '近地天体', path: '/neo', icon: 'fa-meteor', desc: '小行星与轨道预警' },
-            { label: '星球投影', path: '/planet-show', icon: 'fa-cube', desc: '3D 全息与遨游' },
-            { label: '科普视频', path: '/videos', icon: 'fa-circle-play', desc: 'NASA 官方讲解' },
-            { label: '资源下载', path: '/download', icon: 'fa-download', desc: '离线包与部署文档' }
-        ]
-    },
-    {
-        key: 'community', label: '社区', icon: 'fa-users',
-        items: [
-            { label: '宇宙新闻', path: '/news', icon: 'fa-newspaper', desc: '实时天文资讯' },
-            { label: '互动社区', path: '/community', icon: 'fa-comments', desc: '测验 · 留言 · 排行' },
-            { label: '探索工具', path: '/explore', icon: 'fa-toolbox', desc: '星图与单位换算' },
-            { label: '素材来源', path: '/credits', icon: 'fa-copyright', desc: '图片版权清单' }
-        ]
-    }
-];
 
 export const features = [
     { icon: 'fa-sun', cls: 'solar-icon', title: '太阳系行星', path: '/solar-system',

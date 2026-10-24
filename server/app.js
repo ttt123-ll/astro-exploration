@@ -21,6 +21,10 @@ app.use(cookieParser());
 // ---------------- API ----------------
 // 限流只作用于 API：静态资源（JS/CSS/图片/视频）不计数，否则正常浏览几页就会 429
 app.use('/api', globalLimiter);
+if (require('./config').demoMode) {
+    // 演示模式：先挂只读降级接口（新闻/账号/社区），其余接口照常
+    app.use('/api', require('./routes/demo'));
+}
 app.use('/api', require('./routes/auth'));
 app.use('/api', require('./routes/scores'));
 app.use('/api', require('./routes/messages'));
