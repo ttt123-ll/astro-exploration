@@ -1,6 +1,6 @@
 // AI 天文问答：RAG 检索增强 + 装备导购 + 多受众模式（多轮会话 / 溯源 / 三级降级）
 const express = require('express');
-const { reply, usingLLM } = require('../chat');
+const { reply, streamReply, usingLLM } = require('../chat');
 const { kbStats } = require('../rag/data');
 const { vectorMode, indexStats } = require('../rag/search');
 const gearAdvisor = require('../rag/gearAdvisor');
@@ -58,5 +58,50 @@ router.post('/chat', wrap(async (req, res) => {
     const result = await reply(message, sessionId, audience);
     res.json(result);
 }));
+
+/* ---------- 流式问答（SSE）：大模型 token 实时推送，前端逐字打字机 ---------- */
+router.post('/chat/stream', async (req, res) => {
+    const message = String(req.body.message || '').trim();
+    const sessionId = String(req.body.sessionId || '').trim().slice(0, 64) || undefined;
+    const audience = ['child', 'amateur', 'pro'].includes(req.body.audience) ? req.body.audience : 'amateur';
+
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no'
+    });
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+    let closed = false;
+    req.on('close', () => { closed = true; });
+    const send = obj => {
+        if (closed) return;
+        try { res.write('data: ' + JSON.stringify(obj) + '\n\n'); } catch (e) { closed = true; }
+    };
+
+    if (!message) {
+        send({ type: 'error', message: '请输入你想问的天文问题～' });
+        res.end();
+        return;
+    }
+    if (message.length > 200) {
+        send({ type: 'error', message: '问题有点长，请精简到 200 字以内哦～' });
+        res.end();
+        return;
+    }
+
+    try {
+        await streamReply(message, sessionId, audience, {
+            meta: o => send({ type: 'meta', ...o }),
+            delta: t => send({ type: 'delta', text: t }),
+            done: o => send({ type: 'done', ...o })
+        });
+    } catch (e) {
+        send({ type: 'error', message: '生成失败，请稍后再试' });
+    } finally {
+        if (!closed) res.end();
+    }
+});
 
 module.exports = router;

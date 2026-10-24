@@ -20,12 +20,15 @@ async function ask(p, text) {
     await sleep(150);
     await p.keyboard.press('Enter');
     // 等待回答（最多 12 秒）
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 100; i++) {
         await sleep(250);
         const done = await p.evaluate(() => {
             const bots = document.querySelectorAll('.ai-msg.bot');
             const last = bots[bots.length - 1];
-            return !!(last && last.querySelector('.ai-bubble') && !last.querySelector('.ai-bubble.ai-typing'));
+            const bubble = last && last.querySelector('.ai-bubble');
+            // 流式输出：等待打字光标消失、且不再处于 typing 状态
+            return !!(bubble && !bubble.classList.contains('ai-typing') && !last.querySelector('.ai-cursor')
+                && (bubble.textContent || '').length > 0);
         });
         if (done) return true;
     }
@@ -83,7 +86,8 @@ const lastBot = p => p.evaluate(() => {
     let m = await lastBot(p);
     check('有回答气泡', m && m.text.length > 10, m && m.text.slice(0, 40));
     if (LLM) {
-        check('大模型回答为纯文本（无本地角标）', m.cites.length === 0, m.cites);
+        // 大模型会按提示词输出【1】【2】角标，渲染成上标；校验编号都在来源范围内即可
+        check('角标编号均在来源范围内', m.cites.every(n => Number(n) >= 1 && Number(n) <= m.sources.length), { cites: m.cites, sources: m.sources.length });
         check('仍返回溯源来源', m.sources.length >= 1, m.sources.length);
     } else {
         check('回答带角标上标', m.cites.length >= 1, m.cites);
