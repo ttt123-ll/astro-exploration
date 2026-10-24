@@ -32,17 +32,40 @@ function pushTurn(sid, role, content) {
     s.ts = Date.now();
 }
 
+/* ---------- 模型选择：白名单 + 推理模型适配 ---------- */
+function isReasoningModel(m) {
+    return /reasoner|r1/i.test(String(m || ''));
+}
+function normalizeModel(input) {
+    const list = config.ai.models && config.ai.models.length ? config.ai.models : [config.ai.model];
+    const m = String(input || '').trim();
+    return list.includes(m) ? m : config.ai.model;
+}
+/* deepseek-reasoner 等推理模型对 system 消息支持有限：把 system 与对话合并成一条 user */
+function messagesForModel(messages, model) {
+    if (!isReasoningModel(model)) return messages;
+    const sys = messages.filter(m => m.role === 'system').map(m => m.content).join('\n');
+    const rest = messages.filter(m => m.role !== 'system');
+    const merged = (sys ? '【角色与规则】\n' + sys + '\n\n' : '') +
+        rest.map(m => (m.role === 'user' ? m.content : '助手：' + m.content)).join('\n\n');
+    return [{ role: 'user', content: merged }];
+}
+
 /* ---------- 大模型调用（OpenAI 兼容接口） ---------- */
-async function llmChat(messages, maxTokens = 500, overrideKey = '') {
-    const { apiKey: siteKey, baseUrl, model } = config.ai;
+async function llmChat(messages, maxTokens = 500, overrideKey = '', modelOverride = '') {
+    const { apiKey: siteKey, baseUrl, model: defaultModel } = config.ai;
     const apiKey = overrideKey || siteKey;
+    const model = modelOverride || defaultModel;
     if (!apiKey) return null;
+    const reasoning = isReasoningModel(model);
+    const body = { model, messages: messagesForModel(messages, model), max_tokens: reasoning ? Math.max(maxTokens, 900) : maxTokens };
+    if (!reasoning) body.temperature = 0.6;
     try {
         const r = await fetch(baseUrl.replace(/\/+$/, '') + '/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
-            body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature: 0.6 }),
-            signal: AbortSignal.timeout(15000)
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(reasoning ? 90000 : 20000)
         });
         if (!r.ok) return null;
         const j = await r.json();
@@ -130,16 +153,20 @@ const FALLBACK_REPLY =
 const SUGGESTIONS = ['今晚能看到什么星座？', '现在的月相适合观星吗？', '黑洞是怎么形成的？', '带我去看木星'];
 
 /* ---------- 大模型流式调用：边生成边回调，用于 SSE 打字机效果 ---------- */
-async function llmChatStream(messages, maxTokens, onDelta, overrideKey = '') {
-    const { apiKey: siteKey, baseUrl, model } = config.ai;
+async function llmChatStream(messages, maxTokens, onDelta, overrideKey = '', modelOverride = '', onReasoning = null) {
+    const { apiKey: siteKey, baseUrl, model: defaultModel } = config.ai;
     const apiKey = overrideKey || siteKey;
+    const model = modelOverride || defaultModel;
     if (!apiKey) return false;
+    const reasoning = isReasoningModel(model);
+    const body = { model, messages: messagesForModel(messages, model), max_tokens: reasoning ? Math.max(maxTokens, 900) : maxTokens, stream: true };
+    if (!reasoning) body.temperature = 0.6;
     try {
         const r = await fetch(baseUrl.replace(/\/+$/, '') + '/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
-            body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature: 0.6, stream: true }),
-            signal: AbortSignal.timeout(60000)
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(reasoning ? 120000 : 60000)
         });
         if (!r.ok || !r.body) return false;
 
@@ -161,7 +188,9 @@ async function llmChatStream(messages, maxTokens, onDelta, overrideKey = '') {
                 try {
                     const j = JSON.parse(data);
                     const delta = j.choices && j.choices[0] && j.choices[0].delta;
-                    if (delta && delta.content) { got = true; onDelta(delta.content); }
+                    if (!delta) continue;
+                    if (delta.reasoning_content && typeof onReasoning === 'function') onReasoning(delta.reasoning_content);
+                    if (delta.content) { got = true; onDelta(delta.content); }
                 } catch (e) { /* 忽略非 JSON 行（心跳等） */ }
             }
         }
@@ -177,10 +206,12 @@ async function llmChatStream(messages, maxTokens, onDelta, overrideKey = '') {
  * 大模型分支按 token 实时回调，前端边收边显示。 */
 async function streamReply(message, sessionId, audienceInput, handlers, opts = {}) {
     const requestKey = String(opts.apiKey || '');
+    const model = normalizeModel(opts.model);
     const h = handlers || {};
     const meta = h.meta || (() => {});
     const delta = h.delta || (() => {});
     const done = h.done || (() => {});
+    const reasoning = h.reasoning || (() => {});
 
     const audience = normalizeAudience(audienceInput);
     const q = String(message || '').trim().slice(0, 200);
@@ -229,7 +260,7 @@ async function streamReply(message, sessionId, audienceInput, handlers, opts = {
         level,
         levelLabel: level === 1 ? '大模型生成' : '本地知识库检索',
         mode: level === 1 ? 'llm' : 'rag-local',
-        audience, sources: sources.slice(0, 4), tools: tools || [], vector: vectorMode(),
+        audience, model, sources: sources.slice(0, 4), tools: tools || [], vector: vectorMode(),
         action, gear: null
     });
 
@@ -247,10 +278,12 @@ async function streamReply(message, sessionId, audienceInput, handlers, opts = {
             { role: 'user', content: (toolNote ? '【工具计算结果】\n' + toolNote + '\n\n' : '') + ctx + q }
         ];
         let streamed = '';
-        const ok = await llmChatStream(messages, 500, t => { streamed += t; delta(t); }, requestKey);
+        const ok = await llmChatStream(messages, 500, t => { streamed += t; delta(t); }, requestKey, model, reasoning);
         if (ok && streamed.trim()) {
             const parsed = parseCitations(streamed, sources);
             finish(toolNote + '\n' + parsed.text, {
+                model,
+                levelLabel: isReasoningModel(model) ? '深度推理生成' : '大模型生成',
                 sources: (parsed.sources.length ? parsed.sources : sources).slice(0, 4),
                 tools: tools || [], suggestions: [], action
             });
@@ -283,6 +316,7 @@ async function streamReply(message, sessionId, audienceInput, handlers, opts = {
 /* ---------- 主流程 ---------- */
 async function reply(message, sessionId, audienceInput, opts = {}) {
     const requestKey = String(opts.apiKey || '');
+    const model = normalizeModel(opts.model);
     const audience = normalizeAudience(audienceInput);
     const q = String(message || '').trim().slice(0, 200);
     if (!q) return { ok: false, reply: '请输入你想问的天文问题～', sources: [], level: 3 };
@@ -337,7 +371,7 @@ async function reply(message, sessionId, audienceInput, opts = {}) {
             ...history.slice(-8),
             { role: 'user', content: (toolNote ? '【工具计算结果】\n' + toolNote + '\n\n' : '') + ctx + q }
         ];
-        answer = await llmChat(messages, 500, requestKey);
+        answer = await llmChat(messages, 500, requestKey, model);
         if (answer) level = 1;
     }
 
@@ -381,7 +415,8 @@ async function reply(message, sessionId, audienceInput, opts = {}) {
         mode: modeMap[level],
         level,
         audience,
-        levelLabel: level === 1 ? '大模型生成' : level === 2 ? '本地知识库检索' : '超出知识库范围',
+        levelLabel: level === 1 ? (isReasoningModel(model) ? '深度推理生成' : '大模型生成') : level === 2 ? '本地知识库检索' : '超出知识库范围',
+        model,
         tools: tools || [],
         vector: vectorMode(),
         action,
@@ -393,4 +428,4 @@ async function reply(message, sessionId, audienceInput, opts = {}) {
 
 function usingLLM() { return llmEnabled(); }
 
-module.exports = { reply, streamReply, usingLLM };
+module.exports = { reply, streamReply, usingLLM, normalizeModel, isReasoningModel };

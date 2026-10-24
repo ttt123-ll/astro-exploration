@@ -1,6 +1,6 @@
 // AI 天文问答：RAG 检索增强 + 装备导购 + 多受众模式（多轮会话 / 溯源 / 三级降级）
 const express = require('express');
-const { reply, streamReply, usingLLM } = require('../chat');
+const { reply, streamReply, usingLLM, normalizeModel } = require('../chat');
 const { kbStats } = require('../rag/data');
 const { vectorMode, indexStats } = require('../rag/search');
 const gearAdvisor = require('../rag/gearAdvisor');
@@ -29,6 +29,8 @@ router.get('/chat/mode', (req, res) => {
             { level: 2, name: '本地知识库检索', available: true, note: '词法 + 向量混合检索，离线可用' },
             { level: 3, name: '兜底引导', available: true, note: '无命中时给出推荐问题' }
         ],
+        model: require('../config').ai.model,
+        models: require('../config').ai.models,
         siteKeyAvailable: !!aiKey.siteKey(),
         siteKeyMasked: aiKey.maskKey(aiKey.siteKey()),
         vector: vectorMode(),                  // 'api' | 'local'
@@ -49,6 +51,7 @@ router.get('/chat/status', (req, res) => {
         siteKeyAvailable: !!aiKey.siteKey(),
         siteKeyMasked: aiKey.maskKey(aiKey.siteKey()),
         model: require('../config').ai.model,
+        models: require('../config').ai.models,
         baseUrl: require('../config').ai.baseUrl
     });
 });
@@ -75,7 +78,8 @@ router.post('/chat', wrap(async (req, res) => {
     const sessionId = String(req.body.sessionId || '').trim().slice(0, 64) || undefined;
     const audience = ['child', 'amateur', 'pro'].includes(req.body.audience) ? req.body.audience : 'amateur';
     const userKey = aiKey.normalizeKey(req.headers['x-ai-key']);
-    const result = await reply(message, sessionId, audience, { apiKey: userKey });
+    const model = normalizeModel(req.body.model);
+    const result = await reply(message, sessionId, audience, { apiKey: userKey, model });
     res.json(result);
 }));
 
@@ -85,6 +89,7 @@ router.post('/chat/stream', async (req, res) => {
     const sessionId = String(req.body.sessionId || '').trim().slice(0, 64) || undefined;
     const audience = ['child', 'amateur', 'pro'].includes(req.body.audience) ? req.body.audience : 'amateur';
     const userKey = aiKey.normalizeKey(req.headers['x-ai-key']);
+    const model = normalizeModel(req.body.model);
 
     res.writeHead(200, {
         'Content-Type': 'text/event-stream; charset=utf-8',
@@ -116,8 +121,9 @@ router.post('/chat/stream', async (req, res) => {
         await streamReply(message, sessionId, audience, {
             meta: o => send({ type: 'meta', ...o }),
             delta: t => send({ type: 'delta', text: t }),
-            done: o => send({ type: 'done', ...o })
-        }, { apiKey: userKey });
+            reasoning: t => send({ type: 'reasoning', text: t }),
+            done: o => send({ type: 'done', model, ...o })
+        }, { apiKey: userKey, model });
     } catch (e) {
         send({ type: 'error', message: '生成失败，请稍后再试' });
     } finally {

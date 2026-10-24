@@ -35,6 +35,27 @@ const keyStateLabel = computed(() =>
 );
 const keyHeaders = computed(() => (myKey.value ? { 'X-AI-Key': myKey.value } : {}));
 
+/* ===================== 回答模型：极速问答 / 深度推理 ===================== */
+const MODEL_STORAGE = 'astro_ai_model';
+const MODEL_OPTIONS = [
+    { key: 'deepseek-chat', label: '极速问答', icon: 'fa-bolt', desc: '响应快，适合日常科普问题' },
+    { key: 'deepseek-reasoner', label: '深度推理', icon: 'fa-brain', desc: '复杂问题更严谨，耗时更长' }
+];
+const model = ref('deepseek-chat');
+try {
+    const saved = localStorage.getItem(MODEL_STORAGE);
+    if (MODEL_OPTIONS.some(m => m.key === saved)) model.value = saved;
+} catch (e) { /* 隐私模式忽略 */ }
+function pickModel(key) {
+    if (!MODEL_OPTIONS.some(m => m.key === key)) return;
+    model.value = key;
+    try { localStorage.setItem(MODEL_STORAGE, key); } catch (e) { /* 忽略 */ }
+}
+function modelLabel(key) {
+    const hit = MODEL_OPTIONS.find(m => m.key === key) || MODEL_OPTIONS[0];
+    return hit.label;
+}
+
 async function loadKeyStatus() {
     readMyKey();
     try {
@@ -260,6 +281,7 @@ async function readSSE(res, msg) {
             let evt;
             try { evt = JSON.parse(raw.slice(5).trim()); } catch (e) { continue; }
             if (evt.type === 'meta') {
+                if (evt.model) msg.model = evt.model;
                 if (evt.level) msg.level = evt.level;
                 if (evt.levelLabel) msg.levelLabel = evt.levelLabel;
                 if (Array.isArray(evt.sources)) msg.sources = evt.sources;
@@ -268,7 +290,10 @@ async function readSSE(res, msg) {
                 if (evt.action) msg.action = evt.action;
             } else if (evt.type === 'delta') {
                 msg.pending += evt.text || '';
+            } else if (evt.type === 'reasoning') {
+                msg.reasoning = (msg.reasoning || '') + (evt.text || '');
             } else if (evt.type === 'done') {
+                if (evt.model) msg.model = evt.model;
                 if (Array.isArray(evt.sources) && evt.sources.length) msg.sources = evt.sources;
                 if (evt.level) msg.level = evt.level;
                 if (evt.levelLabel) msg.levelLabel = evt.levelLabel;
@@ -289,14 +314,14 @@ async function streamAnswer(q, msg) {
         const res = await fetch('/api/chat/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...keyHeaders.value },
-            body: JSON.stringify({ message: q, sessionId, audience: audience.value })
+            body: JSON.stringify({ message: q, sessionId, audience: audience.value, model: model.value })
         });
         if (!res.ok || !res.body) throw new Error('stream unavailable');
         await readSSE(res, msg);
     } catch (e) {
         // 兜底：不支持流式时取完整回答，再本地逐字显示
         try {
-            const { data } = await api.post('/chat', { message: q, sessionId, audience: audience.value }, { headers: keyHeaders.value });
+            const { data } = await api.post('/chat', { message: q, sessionId, audience: audience.value, model: model.value }, { headers: keyHeaders.value });
             msg.level = data.level || 2;
             msg.levelLabel = data.levelLabel || '';
             msg.sources = Array.isArray(data.sources) ? data.sources.filter(s => s && s.title) : [];
@@ -324,7 +349,8 @@ async function send(text) {
         role: 'bot', text: '', pending: '',
         typing: true, streamDone: false,
         sources: [], suggestions: [],
-        level: 0, levelLabel: '', tools: [], gear: null, action: null, nav: null
+        level: 0, levelLabel: '', tools: [], gear: null, action: null, nav: null,
+        reasoning: '', model: model.value
     });
     messages.value.push(botMsg);
     sending.value = true;
@@ -373,6 +399,13 @@ async function send(text) {
                 <i class="fas" :class="keyState === 'mine' ? 'fa-key' : keyState === 'site' ? 'fa-cloud' : 'fa-triangle-exclamation'"></i>
                 {{ keyStateLabel }}
             </span>
+            <div class="ai-model-switch" role="group" aria-label="回答模型">
+                <button v-for="m in MODEL_OPTIONS" :key="m.key" type="button"
+                        class="ai-model-btn" :class="{ active: model === m.key }"
+                        :title="m.desc" @click="pickModel(m.key)">
+                    <i class="fas" :class="m.icon"></i> {{ m.label }}
+                </button>
+            </div>
             <button class="ai-key-btn" type="button" @click="keyOpen = true">
                 <i class="fas fa-gear"></i> AI 连接设置
             </button>
@@ -488,6 +521,10 @@ async function send(text) {
                     <div class="ai-stack">
                         <div v-if="m.role === 'user'" class="ai-bubble">{{ m.text }}</div>
                         <div v-else class="ai-bubble" :class="{ 'ai-typing': m.typing && !m.text }">
+                            <details v-if="m.reasoning" class="ai-reasoning" :open="m.typing">
+                                <summary><i class="fas fa-brain"></i> 思考过程（{{ modelLabel(m.model) }}）</summary>
+                                <div class="ai-reasoning-body">{{ m.reasoning }}</div>
+                            </details>
                             <template v-if="m.text">
                                 <span class="ai-stream-text" v-html="renderBot(m.text)"></span>
                                 <span v-if="m.typing" class="ai-cursor" aria-hidden="true"></span>
@@ -499,6 +536,9 @@ async function send(text) {
                         <div v-if="m.role === 'bot' && (m.levelLabel || (m.tools && m.tools.length))" class="ai-meta">
                             <span v-if="m.levelLabel" class="ai-level" :class="'lv' + m.level">
                                 <i class="fas fa-circle-nodes"></i>{{ m.levelLabel }}
+                            </span>
+                            <span v-if="m.model" class="ai-model-tag" :title="m.model">
+                                <i class="fas fa-microchip"></i>{{ modelLabel(m.model) }}
                             </span>
                             <span v-for="tool in m.tools" :key="tool" class="ai-tool">
                                 <i class="fas" :class="{
@@ -576,6 +616,141 @@ async function send(text) {
 </template>
 
 <style scoped>
+/* ===== AI 连接栏 ===== */
+.ai-keybar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    margin: 0.1rem 0 0.9rem;
+    flex-wrap: wrap;
+}
+.ai-key-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.74rem;
+    padding: 0.22rem 0.7rem;
+    border-radius: 50px;
+    border: 1px solid rgba(159, 212, 248, 0.25);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-text-secondary);
+}
+.ai-key-badge.is-mine { color: #6ee7b7; border-color: rgba(110, 231, 183, 0.45); background: rgba(16, 185, 129, 0.1); }
+.ai-key-badge.is-none { color: #f8b478; border-color: rgba(248, 180, 120, 0.45); background: rgba(248, 180, 120, 0.08); }
+.ai-key-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.74rem;
+    padding: 0.22rem 0.7rem;
+    border-radius: 50px;
+    border: 1px solid rgba(159, 212, 248, 0.25);
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+.ai-key-btn:hover { color: var(--color-cyan); border-color: var(--color-cyan); }
+
+/* ===== 模型切换 ===== */
+.ai-model-switch {
+    display: inline-flex;
+    padding: 2px;
+    border-radius: 50px;
+    border: 1px solid rgba(159, 212, 248, 0.25);
+    background: rgba(255, 255, 255, 0.03);
+}
+.ai-model-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.18rem 0.62rem;
+    border: none;
+    border-radius: 50px;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+.ai-model-btn:hover { color: var(--color-cyan); }
+.ai-model-btn.active {
+    color: #0a0d18;
+    font-weight: 700;
+    background: linear-gradient(135deg, #9fd8f0, #c4b5fd);
+}
+.ai-model-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 50px;
+    padding: 0.1rem 0.5rem;
+}
+.ai-model-tag i { color: var(--color-cyan); }
+
+/* ===== 思考过程（深度推理模型） ===== */
+.ai-reasoning {
+    margin-bottom: 0.6rem;
+    border-radius: 9px;
+    border: 1px dashed rgba(196, 181, 253, 0.35);
+    background: rgba(196, 181, 253, 0.06);
+    padding: 0.45rem 0.6rem;
+    font-size: 0.76rem;
+}
+.ai-reasoning summary {
+    cursor: pointer;
+    color: #c4b5fd;
+    font-size: 0.74rem;
+    list-style: none;
+}
+.ai-reasoning summary::-webkit-details-marker { display: none; }
+.ai-reasoning summary i { margin-right: 0.3rem; }
+.ai-reasoning-body {
+    margin-top: 0.45rem;
+    max-height: 240px;
+    overflow-y: auto;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+
+/* ===== 页面导航面板 ===== */
+.ai-nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.6rem;
+    margin: 0.4rem 0 0.2rem;
+}
+.ai-nav-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.65rem 0.8rem;
+    border-radius: 10px;
+    border: 1px solid rgba(159, 212, 248, 0.2);
+    background: rgba(255, 255, 255, 0.03);
+    text-decoration: none;
+    transition: all 0.25s ease;
+}
+.ai-nav-item i { color: var(--color-cyan); font-size: 0.95rem; }
+.ai-nav-item b { color: var(--color-text-primary); font-size: 0.86rem; font-weight: 600; }
+.ai-nav-item span { color: var(--color-text-muted); font-size: 0.7rem; }
+.ai-nav-item:hover {
+    border-color: var(--color-cyan);
+    background: rgba(159, 212, 248, 0.08);
+    transform: translateY(-2px);
+}
+.nav-tip {
+    margin: 0.8rem 0 0;
+    font-size: 0.74rem;
+    color: var(--color-text-muted);
+}
+.nav-tip i { color: var(--color-cyan); margin-right: 0.3rem; }
+
 
 /* ===== 流式输出：打字光标 ===== */
 .ai-stream-text { white-space: pre-wrap; }
