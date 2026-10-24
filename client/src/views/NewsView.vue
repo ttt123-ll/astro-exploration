@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import api from '../api';
-import { relTime, clockTime } from '../utils/time';
+import { relTime } from '../utils/time';
 import PageNav from '../components/PageNav.vue';
 import BookSection from '../components/BookSection.vue';
 import PageHeader from '../components/PageHeader.vue';
@@ -27,9 +27,6 @@ function tagColor(name) {
 const total = ref(0);
 const matched = ref(0);
 const loading = ref(false);
-const lastUpdate = ref('');
-const live = ref(true);
-const fresh = ref(false);
 
 /* ---- 筛选条件 ---- */
 const active = ref('all');        // 标签
@@ -111,11 +108,8 @@ function resetAll() {
 const hasFilter = computed(() => active.value !== 'all' || q.value || days.value || sort.value !== 'new');
 
 /* ---- 数据加载 ---- */
-let timer = null;
-const REFRESH_MS = 30000;
-
-async function load(silent = false) {
-    if (!silent) loading.value = true;
+async function load() {
+    loading.value = true;
     try {
         const { data } = await api.get('/news', {
             params: {
@@ -125,17 +119,10 @@ async function load(silent = false) {
                 sort: sort.value
             }
         });
-        const changed = data.rows.length !== rows.value.length
-            || (data.rows[0] && rows.value[0] && data.rows[0].id !== rows.value[0].id);
         rows.value = data.rows;
         tags.value = data.tags;
         total.value = data.total;
         matched.value = data.matched;
-        lastUpdate.value = clockTime();
-        if (changed && silent) {
-            fresh.value = true;
-            setTimeout(() => { fresh.value = false; }, 1600);
-        }
     } catch (e) {
         /* 静默失败，保留上次数据 */
     } finally {
@@ -143,46 +130,19 @@ async function load(silent = false) {
     }
 }
 
-function startAuto() {
-    stopAuto();
-    if (live.value) timer = setInterval(() => load(true), REFRESH_MS);
-}
-function stopAuto() { if (timer) { clearInterval(timer); timer = null; } }
-function toggleLive() { live.value = !live.value; live.value ? startAuto() : stopAuto(); }
-
 const head = computed(() => rows.value[0]);
 const rest = computed(() => rows.value.slice(1));
 
 onMounted(async () => {
     loadHistory();
     await load();
-    startAuto();
 });
-onBeforeUnmount(stopAuto);
 </script>
 
 <template>
     <div class="container">
         <PageNav title="宇宙新闻" />
-        <PageHeader kicker="COSMIC NEWS" title="宇宙新闻" icon="fa-newspaper" deco="nebula" :stats="[{ v: String(total || 24), l: '新闻记录' }, { v: '30 秒', l: '自动同步' }]" subtitle="新闻以数据库记录实时更新——按关键词搜索、按时间与主题筛选，追踪人类探索宇宙的最新足迹。" />
-
-        <!-- 实时状态条 -->
-        <div class="live-bar" :class="{ fresh }">
-            <span class="live-dot" :class="{ on: live }"></span>
-            <span class="live-text">
-                {{ live ? '实时更新中' : '已暂停更新' }}
-                <em v-if="lastUpdate">· 最后同步 {{ lastUpdate }}</em>
-            </span>
-            <span class="live-count">共 {{ total }} 条记录</span>
-            <div class="live-actions">
-                <button class="live-btn" @click="load()" :disabled="loading">
-                    <i class="fas" :class="loading ? 'fa-spinner fa-spin' : 'fa-rotate-right'"></i> 立即刷新
-                </button>
-                <button class="live-btn" :class="{ active: live }" @click="toggleLive">
-                    <i class="fas" :class="live ? 'fa-pause' : 'fa-play'"></i> {{ live ? '暂停' : '开启' }}实时
-                </button>
-            </div>
-        </div>
+        <PageHeader kicker="COSMIC NEWS" title="宇宙新闻" icon="fa-newspaper" deco="nebula" :stats="[{ v: String(total || 24), l: '新闻记录' }, { v: String(tags.length || 9), l: '主题标签' }]" subtitle="新闻以数据库记录实时更新——按关键词搜索、按时间与主题筛选，追踪人类探索宇宙的最新足迹。" />
 
         <!-- 搜索 -->
         <div class="search-wrap">
@@ -315,31 +275,6 @@ onBeforeUnmount(stopAuto);
 }
 
 .tab-num { font-size: 0.72rem; opacity: 0.7; margin-left: 0.2rem; }
-
-/* 实时状态条 */
-.live-bar {
-    display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
-    padding: 0.7rem 1.1rem; margin-bottom: 1.6rem;
-    background: rgba(159, 212, 248, 0.07);
-    border: 1px solid rgba(159, 212, 248, 0.22); border-radius: 50px;
-    font-size: 0.85rem; transition: all 0.4s ease;
-}
-.live-bar.fresh { border-color: #86efac; box-shadow: 0 0 22px rgba(134, 239, 172, 0.35); }
-.live-dot { width: 9px; height: 9px; border-radius: 50%; background: #64748b; flex-shrink: 0; }
-.live-dot.on { background: #4ade80; box-shadow: 0 0 10px #4ade80; animation: pulse 1.8s ease-in-out infinite; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-.live-text { color: var(--color-text-secondary); }
-.live-text em { font-style: normal; color: var(--color-text-muted); }
-.live-count { color: var(--color-cyan); margin-left: auto; }
-.live-actions { display: flex; gap: 0.5rem; }
-.live-btn {
-    padding: 0.3rem 0.9rem; border-radius: 50px; font-size: 0.8rem;
-    border: 1px solid rgba(159, 212, 248, 0.35); background: rgba(159, 212, 248, 0.08);
-    color: var(--color-text-secondary); cursor: pointer; transition: all 0.3s ease;
-}
-.live-btn:hover:not(:disabled) { border-color: var(--color-cyan); color: #fff; }
-.live-btn.active { background: var(--gradient-primary); border-color: transparent; color: #fff; }
-.live-btn:disabled { opacity: 0.6; cursor: default; }
 
 /* 搜索 */
 .search-wrap { position: relative; margin-bottom: 1.2rem; }
@@ -477,7 +412,6 @@ onBeforeUnmount(stopAuto);
     .news-head { grid-template-columns: 1fr; }
     .news-head-img { min-height: 200px; }
     .news-head-body { padding: 1.4rem 1.2rem; }
-    .live-count { margin-left: 0; }
     .search-btn { padding: 0.5rem 0.9rem; }
     .search-btn { font-size: 0; }
     .search-btn i { font-size: 0.9rem; }
