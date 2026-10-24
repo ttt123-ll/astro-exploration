@@ -48,7 +48,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
                 <!-- 移动端：AI 助手入口（桌面端单列在右侧） -->
                 <li class="nav-mobile-ai">
                     <router-link to="/assistant" class="nav-mobile-ai-link" @click="menuOpen = false">
-                        <i class="fas fa-wand-magic-sparkles"></i> 星语 AI 天文助手
+                        <i class="fas fa-wand-magic-sparkles"></i> 星穹 AI 天文助手
                     </router-link>
                 </li>
                 <!-- 移动端：登录/注册入口（桌面端在右侧 nav-actions 中） -->
@@ -82,7 +82,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
                 </div>
                 <!-- AI 助手：单独一栏的独立入口 -->
                 <router-link to="/assistant" class="nav-ai-btn" :class="{ active: isActive('/assistant') }"
-                             title="星语 AI 天文助手">
+                             title="星穹 AI 天文助手">
                     <i class="fas fa-wand-magic-sparkles"></i>
                     <span>AI 助手</span>
                 </router-link>

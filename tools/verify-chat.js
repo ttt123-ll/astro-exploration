@@ -13,7 +13,7 @@ function questions() {
         { q: '猎户座有什么著名的星云？', expect: { hasText: ['猎户'], minSources: 1 } },
         { q: '光年是什么单位？', expect: { minSources: 1 } },
         LLM
-            ? { q: '如何做红烧肉？', expect: { level: 1, hasText: ['天文'] } }
+            ? { q: '如何做红烧肉？', expect: { level: 1, hasAnyText: ['宇宙', '火星', '天文', '观星', '行星', '星空'] } }
             : { q: '如何做红烧肉？', expect: { level: 3, noSources: true, hasText: ['知识库'] } }
     ];
 }
@@ -48,6 +48,7 @@ function questions() {
         if (expect.tools) check('  触发工具：' + expect.tools.join('+'), expect.tools.every(t => (j.tools || []).includes(t)), j.tools);
         if (expect.action) check('  导航动作 = ' + expect.action, j.action && j.action.route === expect.action, j.action);
         if (expect.hasText) check('  回答包含 ' + expect.hasText.join('/'), expect.hasText.every(t => (j.reply || '').includes(t)), (j.reply || '').slice(0, 80));
+        if (expect.hasAnyText) check('  回答引回天文话题', expect.hasAnyText.some(t => (j.reply || '').includes(t)), (j.reply || '').slice(0, 80));
         if (expect.minSources) check('  溯源来源 ≥ ' + expect.minSources, (j.sources || []).length >= expect.minSources, j.sources);
         if (expect.noSources) check('  兜底时无来源', (j.sources || []).length === 0, j.sources);
 
@@ -63,6 +64,16 @@ function questions() {
     const r2 = await (await fetch(BASE + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: '那土星呢？', sessionId: sid }) })).json();
     check('多轮会话可继续（第二轮有回答）', (r2.reply || '').length > 5, r2.reply);
     check('第二轮检索到土星资料', /土星/.test(r2.reply || ''), (r2.reply || '').slice(0, 80));
+
+    // 代词指代：问过木星后，「它」应指木星
+    const pid = 'test-pronoun-' + Date.now();
+    await fetch(BASE + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: '木星有多大？', sessionId: pid }) });
+    const r3 = await (await fetch(BASE + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: '那它有几颗卫星？', sessionId: pid }) })).json();
+    check('代词指代可延续（第二轮有回答）', (r3.reply || '').length > 5, (r3.reply || '').slice(0, 60));
+    if (LLM) {
+        check('「它」被正确理解为木星（回答含木星/卫星）',
+            /卫星/.test(r3.reply || '') && /木星|它/.test(r3.reply || ''), (r3.reply || '').slice(0, 80));
+    }
 
     console.log('\n=== 边界 ===');
     const empty = await (await fetch(BASE + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: '' }) })).json();

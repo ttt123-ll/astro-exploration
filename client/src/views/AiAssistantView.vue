@@ -319,7 +319,7 @@ async function send(text) {
 
 <template>
     <div class="container ai-page">
-        <PageHeader kicker="AI · RAG 检索增强" title="星语 AI 天文助手" icon="fa-robot" deco="orbit"
+        <PageHeader kicker="AI · RAG 检索增强" title="星穹 AI 天文助手" icon="fa-robot" deco="orbit"
                     subtitle="基于站内自建天文知识库，回答可溯源" />
 
         <!-- 状态条：运行模式 + 知识库规模 -->
@@ -436,7 +436,7 @@ async function send(text) {
                         <span class="ai-orbit-ring r2"></span>
                         <span class="ai-orbit-core"><i class="fas fa-robot"></i></span>
                     </div>
-                    <h3>你好，我是星语 ✨</h3>
+                    <h3>你好，我是星穹 ✨</h3>
                     <p>问我任何天文问题——月相、星座、黑洞、行星……每条回答都可溯源到站内知识库。</p>
                     <div class="ai-quick">
                         <button v-for="q in QUICK" :key="q" @click="send(q)">{{ q }}</button>
