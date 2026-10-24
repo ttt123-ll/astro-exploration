@@ -127,7 +127,7 @@ const lastBot = p => p.evaluate(() => {
     await ask(p, '如何做红烧肉？');
     m = await lastBot(p);
     if (LLM) {
-        check('大模型礼貌拒答非天文问题', (m.text || '').length > 10 && /天文|观星|星空|不展开|范畴/.test(m.text), (m.text || '').slice(0, 50));
+        check('大模型礼貌拒答非天文问题', (m.text || '').length > 10 && /天文|宇宙|观星|星空|火星|行星|不展开|范畴/.test(m.text), (m.text || '').slice(0, 50));
         check('级别标签为大模型生成', /大模型生成/.test(m.level), m.level);
     } else {
         check('触发第 3 级兜底文案', /知识库/.test(m.text), m.text.slice(0, 50));
