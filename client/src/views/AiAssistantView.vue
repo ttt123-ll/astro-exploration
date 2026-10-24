@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, nextTick, onMounted } from 'vue';
+import { ref, reactive, computed, nextTick, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 import PageHeader from '../components/PageHeader.vue';
@@ -187,38 +187,135 @@ const NAV_LINKS = [
     { to: '/download', label: '资源下载', icon: 'fa-download', desc: '离线包·文档' }
 ];
 
+/* ===================== 流式问答 + 打字机 ===================== */
+const reduceMotion = typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false;
+const TYPE_TICK = 16;          // 每 16ms 输出 1 个字符（约 60 字/秒）
+const TYPE_DIRECT = reduceMotion;
+
+/* 把 pending 缓冲逐字写入 msg.text，直到流结束且缓冲清空 */
+function typewriter(msg) {
+    return new Promise(resolve => {
+        const tick = () => {
+            if (msg.pending) {
+                const backlog = msg.pending.length;
+                // 积压多时一次多吐几个字，长回答不至于等太久
+                const take = TYPE_DIRECT ? backlog : (backlog > 160 ? 4 : backlog > 48 ? 2 : 1);
+                msg.text += msg.pending.slice(0, take);
+                msg.pending = msg.pending.slice(take);
+                scrollBottom();
+                setTimeout(tick, TYPE_TICK);
+                return;
+            }
+            if (msg.streamDone) { msg.typing = false; scrollBottom(); resolve(); return; }
+            setTimeout(tick, 20);
+        };
+        setTimeout(tick, 0);
+    });
+}
+
+/* 解析 SSE：meta / delta / done / error */
+async function readSSE(res, msg) {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let idx;
+        while ((idx = buf.indexOf('\n\n')) >= 0) {
+            const raw = buf.slice(0, idx).trim();
+            buf = buf.slice(idx + 2);
+            if (!raw.startsWith('data:')) continue;
+            let evt;
+            try { evt = JSON.parse(raw.slice(5).trim()); } catch (e) { continue; }
+            if (evt.type === 'meta') {
+                if (evt.level) msg.level = evt.level;
+                if (evt.levelLabel) msg.levelLabel = evt.levelLabel;
+                if (Array.isArray(evt.sources)) msg.sources = evt.sources;
+                if (Array.isArray(evt.tools)) msg.tools = evt.tools;
+                if (evt.gear) msg.gear = evt.gear;
+                if (evt.action) msg.action = evt.action;
+            } else if (evt.type === 'delta') {
+                msg.pending += evt.text || '';
+            } else if (evt.type === 'done') {
+                if (Array.isArray(evt.sources) && evt.sources.length) msg.sources = evt.sources;
+                if (evt.level) msg.level = evt.level;
+                if (evt.levelLabel) msg.levelLabel = evt.levelLabel;
+                if (Array.isArray(evt.suggestions)) msg.suggestions = evt.suggestions;
+                if (evt.gear) msg.gear = evt.gear;
+                if (Array.isArray(evt.tools)) msg.tools = evt.tools;
+                if (evt.action) msg.action = evt.action;
+            } else if (evt.type === 'error') {
+                msg.pending += evt.message || '生成失败，请稍后再试';
+            }
+        }
+    }
+    msg.streamDone = true;
+}
+
+async function streamAnswer(q, msg) {
+    try {
+        const res = await fetch('/api/chat/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: q, sessionId, audience: audience.value })
+        });
+        if (!res.ok || !res.body) throw new Error('stream unavailable');
+        await readSSE(res, msg);
+    } catch (e) {
+        // 兜底：不支持流式时取完整回答，再本地逐字显示
+        try {
+            const { data } = await api.post('/chat', { message: q, sessionId, audience: audience.value });
+            msg.level = data.level || 2;
+            msg.levelLabel = data.levelLabel || '';
+            msg.sources = Array.isArray(data.sources) ? data.sources.filter(s => s && s.title) : [];
+            msg.suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+            msg.tools = Array.isArray(data.tools) ? data.tools : [];
+            msg.gear = data.gear || null;
+            msg.action = data.action || null;
+            msg.pending += data.reply || '（没有收到回复）';
+        } catch (e2) {
+            msg.pending += '连接失败，请确认后端服务已启动。';
+        }
+        msg.streamDone = true;
+    }
+}
+
 async function send(text) {
     const q = (text !== undefined ? text : input.value).trim();
     if (!q || sending.value) return;
     input.value = '';
+
     messages.value.push({ role: 'user', text: q });
-    scrollBottom();
+
+    // 关键：必须是响应式对象，流式追加时才能实时渲染
+    const botMsg = reactive({
+        role: 'bot', text: '', pending: '',
+        typing: true, streamDone: false,
+        sources: [], suggestions: [],
+        level: 0, levelLabel: '', tools: [], gear: null, action: null, nav: null
+    });
+    messages.value.push(botMsg);
     sending.value = true;
+    scrollBottom();
+
     try {
-        const { data } = await api.post('/chat', { message: q, sessionId, audience: audience.value });
-        const botMsg = {
-            role: 'bot',
-            text: data.reply || '（没有收到回复）',
-            sources: Array.isArray(data.sources) ? data.sources.filter(s => s && s.title) : [],
-            suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
-            level: data.level || 2,
-            levelLabel: data.levelLabel || '',
-            tools: Array.isArray(data.tools) ? data.tools : [],
-            gear: data.gear || null,
-            nav: null
-        };
-        messages.value.push(botMsg);
-        if (data.action && data.action.type === 'navigate' && data.action.route) {
-            handleNavigate(botMsg, data.action);
+        // 先启动打字机（它会在等待 pending / streamDone），再开始收流
+        const typing = typewriter(botMsg);
+        await streamAnswer(q, botMsg);
+        await typing;
+        if (botMsg.action && botMsg.action.type === 'navigate' && botMsg.action.route) {
+            handleNavigate(botMsg, botMsg.action);
         }
-    } catch (e) {
-        messages.value.push({ role: 'bot', text: '连接失败，请确认后端服务已启动。', sources: [], nav: null });
     } finally {
+        botMsg.typing = false;
         sending.value = false;
         scrollBottom();
     }
-}
-</script>
+}</script>
 
 <template>
     <div class="container ai-page">
@@ -351,7 +448,13 @@ async function send(text) {
                     <span v-if="m.role === 'bot'" class="ai-avatar"><i class="fas fa-robot"></i></span>
                     <div class="ai-stack">
                         <div v-if="m.role === 'user'" class="ai-bubble">{{ m.text }}</div>
-                        <div v-else class="ai-bubble" v-html="renderBot(m.text)"></div>
+                        <div v-else class="ai-bubble" :class="{ 'ai-typing': m.typing && !m.text }">
+                            <template v-if="m.text">
+                                <span class="ai-stream-text" v-html="renderBot(m.text)"></span>
+                                <span v-if="m.typing" class="ai-cursor" aria-hidden="true"></span>
+                            </template>
+                            <template v-else><span></span><span></span><span></span></template>
+                        </div>
 
                         <!-- 三级降级可视化：本条回答的级别 + 调用的工具 -->
                         <div v-if="m.role === 'bot' && (m.levelLabel || (m.tools && m.tools.length))" class="ai-meta">
@@ -414,12 +517,6 @@ async function send(text) {
                         </div>
                     </div>
                 </div>
-
-                <!-- 发送中：三点 typing -->
-                <div v-if="sending" class="ai-msg bot">
-                    <span class="ai-avatar"><i class="fas fa-robot"></i></span>
-                    <div class="ai-bubble ai-typing"><span></span><span></span><span></span></div>
-                </div>
             </div>
 
             <!-- 输入栏 -->
@@ -439,6 +536,26 @@ async function send(text) {
 </template>
 
 <style scoped>
+
+/* ===== 流式输出：打字光标 ===== */
+.ai-stream-text { white-space: pre-wrap; }
+.ai-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.05em;
+    margin-left: 3px;
+    vertical-align: -0.16em;
+    background: var(--color-cyan);
+    box-shadow: 0 0 6px rgba(159, 212, 248, 0.85);
+    animation: aiCursorBlink 1s steps(2, start) infinite;
+}
+@keyframes aiCursorBlink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ai-cursor { animation: none; }
+}
 
 /* ===== 受众模式选择器 ===== */
 .ai-audience {

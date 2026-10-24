@@ -121,6 +121,155 @@ const FALLBACK_REPLY =
 
 const SUGGESTIONS = ['今晚能看到什么星座？', '现在的月相适合观星吗？', '黑洞是怎么形成的？', '带我去看木星'];
 
+/* ---------- 大模型流式调用：边生成边回调，用于 SSE 打字机效果 ---------- */
+async function llmChatStream(messages, maxTokens, onDelta) {
+    if (!llmEnabled()) return false;
+    const { apiKey, baseUrl, model } = config.ai;
+    try {
+        const r = await fetch(baseUrl.replace(/\/+$/, '') + '/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
+            body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature: 0.6, stream: true }),
+            signal: AbortSignal.timeout(60000)
+        });
+        if (!r.ok || !r.body) return false;
+
+        const reader = r.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        let got = false;
+        for (;;) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            let idx;
+            while ((idx = buf.indexOf('\n')) >= 0) {
+                const line = buf.slice(0, idx).trim();
+                buf = buf.slice(idx + 1);
+                if (!line.startsWith('data:')) continue;
+                const data = line.slice(5).trim();
+                if (!data || data === '[DONE]') continue;
+                try {
+                    const j = JSON.parse(data);
+                    const delta = j.choices && j.choices[0] && j.choices[0].delta;
+                    if (delta && delta.content) { got = true; onDelta(delta.content); }
+                } catch (e) { /* 忽略非 JSON 行（心跳等） */ }
+            }
+        }
+        return got;
+    } catch (e) {
+        return false;
+    }
+}
+
+/* ---------- 流式主流程：meta → delta… → done ----------
+ * handlers: { meta(obj), delta(text), done(obj) }
+ * 装备/工具/本地检索分支把完整文本作为一段 delta 发送，前端统一做逐字打字机；
+ * 大模型分支按 token 实时回调，前端边收边显示。 */
+async function streamReply(message, sessionId, audienceInput, handlers) {
+    const h = handlers || {};
+    const meta = h.meta || (() => {});
+    const delta = h.delta || (() => {});
+    const done = h.done || (() => {});
+
+    const audience = normalizeAudience(audienceInput);
+    const q = String(message || '').trim().slice(0, 200);
+    if (!q) {
+        meta({ level: 3, levelLabel: '超出知识库范围', sources: [], tools: [], audience });
+        delta('请输入你想问的天文问题～');
+        done({ suggestions: SUGGESTIONS, action: null, stats: kbStats() });
+        return;
+    }
+
+    const history = getSession(sessionId)?.msgs || [];
+    const finish = (answer, extra) => {
+        if (sessionId) {
+            pushTurn(sessionId, 'user', q);
+            pushTurn(sessionId, 'assistant', String(answer).slice(0, 2000));
+        }
+        done({ ...extra, stats: kbStats() });
+    };
+
+    // 0) 装备导购：规则引擎直接作答
+    if (gearAdvisor.isGearQuery(q)) {
+        const g = gearAdvisor.advise(q, { audience });
+        if (g.handled) {
+            meta({
+                level: 2, levelLabel: '装备导购引擎', mode: 'rag-local',
+                audience, sources: [], tools: g.tools || [], vector: vectorMode(),
+                action: null, gear: g.gear || null
+            });
+            delta(g.reply);
+            finish(g.reply, { gear: g.gear || null, tools: g.tools || [], sources: [], suggestions: [], action: null });
+            return;
+        }
+    }
+
+    // 1) 工具调用（月相 / 今夜观星 / 页面导航）
+    const { results: toolResults, action, tools } = runTools(q);
+    const toolNote = toolResults.length ? toolResults.join('\n') : '';
+
+    // 2) RAG 检索
+    const rawChunks = await search(q, 4);
+    const chunks = rawChunks.filter(c => (c._score || 0) >= MIN_RELEVANCE);
+    const sources = chunks.map(c => ({ title: c.title, route: c.route, score: c._score }));
+
+    let level = llmEnabled() ? 1 : 2;
+    meta({
+        level,
+        levelLabel: level === 1 ? '大模型生成' : '本地知识库检索',
+        mode: level === 1 ? 'llm' : 'rag-local',
+        audience, sources: sources.slice(0, 4), tools: tools || [], vector: vectorMode(),
+        action, gear: null
+    });
+
+    // 工具结论先发（如果有），让用户第一时间看到月相/观星结果
+    if (toolNote) delta(toolNote + '\n');
+
+    // 第 1 级：大模型流式生成
+    if (level === 1) {
+        const ctx = chunks.length
+            ? '【资料】\n' + chunks.map((c, i) => `【${i + 1}】${c.title}：${c.text}`).join('\n') + '\n\n'
+            : '';
+        const messages = [
+            { role: 'system', content: SYSTEM_PROMPTS[audience] || SYSTEM_PROMPTS.amateur },
+            ...history.slice(-8),
+            { role: 'user', content: (toolNote ? '【工具计算结果】\n' + toolNote + '\n\n' : '') + ctx + q }
+        ];
+        let streamed = '';
+        const ok = await llmChatStream(messages, 500, t => { streamed += t; delta(t); });
+        if (ok && streamed.trim()) {
+            const parsed = parseCitations(streamed, sources);
+            finish(toolNote + '\n' + parsed.text, {
+                sources: (parsed.sources.length ? parsed.sources : sources).slice(0, 4),
+                tools: tools || [], suggestions: [], action
+            });
+            return;
+        }
+        level = 2;
+    }
+
+    // 第 2 / 3 级：本地检索或兜底（整段发送，前端逐字显示）
+    let answer;
+    let usedSources = sources;
+    if (toolNote && chunks.length) answer = toolNote + '\n\n' + composeFromChunks(chunks, audience);
+    else if (toolNote) answer = toolNote;
+    else if (chunks.length) answer = composeFromChunks(chunks, audience);
+    else { answer = FALLBACK_REPLY; usedSources = []; level = 3; }
+
+    if (!toolNote) delta(answer);
+    else delta(toolNote && chunks.length ? composeFromChunks(chunks, audience) : '');
+
+    finish(answer, {
+        level,
+        levelLabel: level === 2 ? '本地知识库检索' : '超出知识库范围',
+        mode: level === 2 ? 'rag-local' : 'fallback',
+        sources: usedSources.slice(0, 4),
+        suggestions: level === 3 ? SUGGESTIONS : [],
+        tools: tools || [], action
+    });
+}
+
 /* ---------- 主流程 ---------- */
 async function reply(message, sessionId, audienceInput) {
     const audience = normalizeAudience(audienceInput);
@@ -233,4 +382,4 @@ async function reply(message, sessionId, audienceInput) {
 
 function usingLLM() { return llmEnabled(); }
 
-module.exports = { reply, usingLLM };
+module.exports = { reply, streamReply, usingLLM };
