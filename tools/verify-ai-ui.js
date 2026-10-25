@@ -108,7 +108,7 @@ const lastBot = p => p.evaluate(() => {
     console.log('\n=== 今夜观星 ===');
     await ask(p, '今晚能看到什么星座？');
     m = await lastBot(p);
-    check('今夜观星回答含星座与时段', /星座/.test(m.text) && /(19|20|21|22):\d\d|最佳观测/.test(m.text), m.text.slice(0, 80));
+    check('今夜观星回答含星座与时段', /星座/.test(m.text) && /(19|20|21|22)[:：]\d\d|最佳观测|观测窗口|\d{1,2}\s*点/.test(m.text), m.text.slice(0, 80));
     check('显示「今夜观星」工具徽标', m.tools.includes('今夜观星'), m.tools);
 
     // 4) 导航跳转

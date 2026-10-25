@@ -3,6 +3,7 @@ const config = require('./config');
 const { search, vectorMode } = require('./rag/search');
 const { runTools } = require('./rag/tools');
 const gearAdvisor = require('./rag/gearAdvisor');
+const { TOOL_DEFS, executeTool, mightNeedTools } = require('./aiFunctions');
 const { kbStats } = require('./rag/data');
 
 /* 相关性门槛：最高分低于该值时视为「知识库无命中」，走第 3 级兜底引导 */
@@ -73,6 +74,61 @@ async function llmChat(messages, maxTokens = 500, overrideKey = '', modelOverrid
     } catch (e) {
         return null;
     }
+}
+
+/* ---------- Function Calling：规划（tool_calls）→ 执行 → 结果 ---------- */
+/**
+ * 让模型决定调用哪些工具（非流式短请求，仅工具相关意图才触发，避免拖慢普通问答）。
+ * 推理模型（deepseek-reasoner）不支持 tools，返回空数组。
+ */
+async function planToolCalls(messages, apiKey, model) {
+    if (!apiKey || isReasoningModel(model)) return [];
+    const baseUrl = config.ai.baseUrl.replace(/\/+$/, '');
+    const body = {
+        model,
+        messages: messagesForModel(messages, model),
+        tools: TOOL_DEFS,
+        tool_choice: 'auto',
+        max_tokens: 220,
+        temperature: 0.2
+    };
+    try {
+        const r = await fetch(baseUrl + '/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(20000)
+        });
+        if (!r.ok) return [];
+        const j = await r.json();
+        const msg = j.choices && j.choices[0] && j.choices[0].message;
+        return msg && Array.isArray(msg.tool_calls) ? msg.tool_calls : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+/** 执行规划出的工具调用，返回 { toolsUsed, note, action } */
+async function executeToolCalls(toolCalls) {
+    const toolsUsed = [];
+    const notes = [];
+    let action = null;
+    for (const tc of toolCalls) {
+        const name = (tc.function && tc.function.name) || '';
+        let args = {};
+        try { args = JSON.parse((tc.function && tc.function.arguments) || '{}'); } catch (e) { args = {}; }
+        const res = await executeTool(name, args);
+        toolsUsed.push({
+            name,
+            args,
+            label: res.label || name,
+            ok: res.ok !== false,
+            summary: String(res.summary || '').slice(0, 160)
+        });
+        if (res.summary) notes.push(res.summary);
+        if (res.action && !action) action = res.action;
+    }
+    return { toolsUsed, note: notes.join('\n\n'), action };
 }
 
 /* ---------- 角色设定（人设 / 上下文 / 语气 / 边界）+ 多受众表达 ----------
@@ -246,9 +302,31 @@ async function streamReply(message, sessionId, audienceInput, handlers, opts = {
         }
     }
 
-    // 1) 工具调用（月相 / 今夜观星 / 页面导航）
-    const { results: toolResults, action, tools } = runTools(q);
-    const toolNote = toolResults.length ? toolResults.join('\n') : '';
+    // 1) 规则工具（月相 / 今夜观星 / 页面导航）：无大模型时的兜底
+    const rule = runTools(q);
+    const toolResults = rule.results;
+    let action = rule.action;
+    let tools = rule.tools;
+
+    // 1.5) Function Calling：大模型规划 → 执行工具 → 结果注入最终生成
+    let toolsUsed = [];
+    let plannerNote = '';
+    if ((llmEnabled() || requestKey) && !isReasoningModel(model) && mightNeedTools(q)) {
+        const planMessages = [
+            { role: 'system', content: SYSTEM_PROMPTS[audience] || SYSTEM_PROMPTS.amateur },
+            ...history.slice(-4),
+            { role: 'user', content: q }
+        ];
+        const calls = await planToolCalls(planMessages, requestKey || config.ai.apiKey, model);
+        if (calls.length) {
+            const ex = await executeToolCalls(calls);
+            toolsUsed = ex.toolsUsed;
+            plannerNote = ex.note;
+            if (ex.action) action = ex.action;
+            tools = toolsUsed.map(x => x.name);
+        }
+    }
+    const toolNote = plannerNote || (toolResults.length ? toolResults.join('\n') : '');
 
     // 2) RAG 检索
     const rawChunks = await search(q, 4);
@@ -260,12 +338,10 @@ async function streamReply(message, sessionId, audienceInput, handlers, opts = {
         level,
         levelLabel: level === 1 ? '大模型生成' : '本地知识库检索',
         mode: level === 1 ? 'llm' : 'rag-local',
-        audience, model, sources: sources.slice(0, 4), tools: tools || [], vector: vectorMode(),
+        audience, model, sources: sources.slice(0, 4), tools: tools || [], toolsUsed: toolsUsed || [], vector: vectorMode(),
         action, gear: null
     });
 
-    // 工具结论先发（如果有），让用户第一时间看到月相/观星结果
-    if (toolNote) delta(toolNote + '\n');
 
     // 第 1 级：大模型流式生成
     if (level === 1) {
@@ -275,17 +351,17 @@ async function streamReply(message, sessionId, audienceInput, handlers, opts = {
         const messages = [
             { role: 'system', content: SYSTEM_PROMPTS[audience] || SYSTEM_PROMPTS.amateur },
             ...history.slice(-8),
-            { role: 'user', content: (toolNote ? '【工具计算结果】\n' + toolNote + '\n\n' : '') + ctx + q }
+            { role: 'user', content: (toolNote ? '【工具计算结果（已展示给用户，请勿重复原文，直接基于结果解释与补充）】\n' + toolNote + '\n\n' : '') + ctx + q }
         ];
         let streamed = '';
         const ok = await llmChatStream(messages, 500, t => { streamed += t; delta(t); }, requestKey, model, reasoning);
         if (ok && streamed.trim()) {
             const parsed = parseCitations(streamed, sources);
-            finish(toolNote + '\n' + parsed.text, {
+            finish(parsed.text, {
                 model,
                 levelLabel: isReasoningModel(model) ? '深度推理生成' : '大模型生成',
                 sources: (parsed.sources.length ? parsed.sources : sources).slice(0, 4),
-                tools: tools || [], suggestions: [], action
+                tools: tools || [], toolsUsed: toolsUsed || [], suggestions: [], action
             });
             return;
         }
@@ -300,8 +376,7 @@ async function streamReply(message, sessionId, audienceInput, handlers, opts = {
     else if (chunks.length) answer = composeFromChunks(chunks, audience);
     else { answer = FALLBACK_REPLY; usedSources = []; level = 3; }
 
-    if (!toolNote) delta(answer);
-    else delta(toolNote && chunks.length ? composeFromChunks(chunks, audience) : '');
+    delta(answer);
 
     finish(answer, {
         level,
@@ -309,7 +384,7 @@ async function streamReply(message, sessionId, audienceInput, handlers, opts = {
         mode: level === 2 ? 'rag-local' : 'fallback',
         sources: usedSources.slice(0, 4),
         suggestions: level === 3 ? SUGGESTIONS : [],
-        tools: tools || [], action
+        tools: tools || [], toolsUsed: toolsUsed || [], action
     });
 }
 
@@ -348,9 +423,31 @@ async function reply(message, sessionId, audienceInput, opts = {}) {
         }
     }
 
-    // 1) 工具调用（月相 / 今夜观星 / 页面导航）——「哇」时刻都在这一层，不依赖大模型
-    const { results: toolResults, action, tools } = runTools(q);
-    const toolNote = toolResults.length ? toolResults.join('\n') : '';
+    // 1) 规则工具（月相 / 今夜观星 / 页面导航）——不依赖大模型的兜底
+    const rule = runTools(q);
+    const toolResults = rule.results;
+    let action = rule.action;
+    let tools = rule.tools;
+
+    // 1.5) Function Calling：规划 → 执行 → 注入
+    let toolsUsed = [];
+    let plannerNote = '';
+    if ((llmEnabled() || requestKey) && !isReasoningModel(model) && mightNeedTools(q)) {
+        const planMessages = [
+            { role: 'system', content: SYSTEM_PROMPTS[audience] || SYSTEM_PROMPTS.amateur },
+            ...history.slice(-4),
+            { role: 'user', content: q }
+        ];
+        const calls = await planToolCalls(planMessages, requestKey || config.ai.apiKey, model);
+        if (calls.length) {
+            const ex = await executeToolCalls(calls);
+            toolsUsed = ex.toolsUsed;
+            plannerNote = ex.note;
+            if (ex.action) action = ex.action;
+            tools = toolsUsed.map(x => x.name);
+        }
+    }
+    const toolNote = plannerNote || (toolResults.length ? toolResults.join('\n') : '');
 
     // 2) RAG 检索站内知识库（词法 + 向量混合）
     const rawChunks = await search(q, 4);
@@ -380,7 +477,7 @@ async function reply(message, sessionId, audienceInput, opts = {}) {
     if (level === 1 && answer) {
         // 第 1 级成功：保留工具结论 + 模型回答，角标映射为来源
         const parsed = parseCitations(answer, sources);
-        answer = toolNote ? toolNote + '\n' + parsed.text : parsed.text;
+        answer = parsed.text;
         usedSources = parsed.sources.length ? parsed.sources : sources;
     } else {
         // 第 2 级：工具结论 + 知识库原文（本地抽取式回答，按受众调整）
@@ -418,6 +515,7 @@ async function reply(message, sessionId, audienceInput, opts = {}) {
         levelLabel: level === 1 ? (isReasoningModel(model) ? '深度推理生成' : '大模型生成') : level === 2 ? '本地知识库检索' : '超出知识库范围',
         model,
         tools: tools || [],
+        toolsUsed: toolsUsed || [],
         vector: vectorMode(),
         action,
         sources: usedSources.slice(0, 4),

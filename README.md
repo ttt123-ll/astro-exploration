@@ -406,6 +406,25 @@ node tools/verify-visual.js --shots   # 走查并输出截图到 shots/walk/
 
 > 共享类定义在 `client/src/style.css`（`.page-back` / `.info-card`），新页面直接复用，避免再出现「每页一套」。
 
+## 六·四、AI Function Calling（工具调用）
+
+AI 助手除 RAG 问答外，还支持让大模型**自主规划并调用站内工具**（OpenAI / DeepSeek `tools` 协议）：
+
+| 工具 | 能力 |
+|---|---|
+| `moon_phase` | 指定日期月相、月龄、照亮比例、观星指数 |
+| `tonight_sky` | 今夜/当季星座方位、暮光时间、最佳观测窗口 |
+| `gear_advice` | 预算约束下的望远镜/双筒/相机导购 |
+| `search_knowledge` | 站内知识库检索（带来源路径与相关度） |
+| `navigate_page` | 生成页面跳转动作（如「带我去木星」） |
+
+流程：**意图命中 → 模型规划 tool_calls → 服务端执行 → 结果注入 Prompt → 流式生成**；
+SSE 的 `meta.toolsUsed` / `done.toolsUsed` 携带调用记录，前端在回答下方展示「工具徽标」。
+
+- 工具全部本地实现，断网/无 Key 也能用（规则工具兜底）
+- 推理模型（deepseek-reasoner）不支持 tools 时自动跳过规划
+- 测试：`node tools/verify-ai-tools.js`（29 项）
+
 ## 六·五、AI 天文助手（RAG 实现说明）
 
 | 环节 | 实现 |

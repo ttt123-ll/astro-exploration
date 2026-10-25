@@ -88,7 +88,7 @@ async function ask(q) {
     check('回答带角标或资料编号', /【\d】/.test(black.reply || '') || (black.sources || []).length > 0, (black.reply || '').slice(0, 60));
 
     const tools = await ask('今晚能看到什么星座？');
-    check('工具调用仍可用（今夜观星）', (tools.tools || []).includes('tonight-sky'), tools.tools);
+    check('工具调用仍可用（今夜观星）', (tools.tools || []).map(x => String(x).replace(/_/g, '-')).includes('tonight-sky'), tools.tools);
 
     const modeInfo2 = await (await fetch(BASE + '/api/chat/mode')).json();
     const llm = !!(modeInfo2.levels && modeInfo2.levels[0] && modeInfo2.levels[0].available);

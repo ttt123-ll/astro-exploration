@@ -56,6 +56,33 @@ function modelLabel(key) {
     return hit.label;
 }
 
+/* 工具徽标：优先展示 Function Calling 实际调用记录，兼容旧的规则工具 */
+const TOOL_ICONS = {
+    moon_phase: 'fa-moon', tonight_sky: 'fa-star-and-crescent', gear_advice: 'fa-binoculars',
+    search_knowledge: 'fa-book-open', navigate_page: 'fa-location-arrow',
+    'moon-phase': 'fa-moon', 'tonight-sky': 'fa-star-and-crescent',
+    'gear-advisor': 'fa-binoculars', navigate: 'fa-location-arrow'
+};
+const TOOL_NAMES = {
+    'moon-phase': '月相计算', 'tonight-sky': '今夜观星', 'gear-advisor': '装备导购', navigate: '页面导航'
+};
+function toolLabels(m) {
+    if (Array.isArray(m.toolsUsed) && m.toolsUsed.length) {
+        return m.toolsUsed.map(t => ({
+            key: t.name + '-' + (t.label || ''),
+            label: t.label || TOOL_NAMES[t.name] || t.name,
+            icon: TOOL_ICONS[t.name] || 'fa-screwdriver-wrench',
+            ok: t.ok !== false
+        }));
+    }
+    return (m.tools || []).map(t => ({
+        key: t,
+        label: TOOL_NAMES[t] || t,
+        icon: TOOL_ICONS[t] || 'fa-screwdriver-wrench',
+        ok: true
+    }));
+}
+
 async function loadKeyStatus() {
     readMyKey();
     try {
@@ -286,6 +313,7 @@ async function readSSE(res, msg) {
                 if (evt.levelLabel) msg.levelLabel = evt.levelLabel;
                 if (Array.isArray(evt.sources)) msg.sources = evt.sources;
                 if (Array.isArray(evt.tools)) msg.tools = evt.tools;
+                if (Array.isArray(evt.toolsUsed)) msg.toolsUsed = evt.toolsUsed;
                 if (evt.gear) msg.gear = evt.gear;
                 if (evt.action) msg.action = evt.action;
             } else if (evt.type === 'delta') {
@@ -300,6 +328,7 @@ async function readSSE(res, msg) {
                 if (Array.isArray(evt.suggestions)) msg.suggestions = evt.suggestions;
                 if (evt.gear) msg.gear = evt.gear;
                 if (Array.isArray(evt.tools)) msg.tools = evt.tools;
+                if (Array.isArray(evt.toolsUsed)) msg.toolsUsed = evt.toolsUsed;
                 if (evt.action) msg.action = evt.action;
             } else if (evt.type === 'error') {
                 msg.pending += evt.message || '生成失败，请稍后再试';
@@ -327,6 +356,7 @@ async function streamAnswer(q, msg) {
             msg.sources = Array.isArray(data.sources) ? data.sources.filter(s => s && s.title) : [];
             msg.suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
             msg.tools = Array.isArray(data.tools) ? data.tools : [];
+            msg.toolsUsed = Array.isArray(data.toolsUsed) ? data.toolsUsed : [];
             msg.gear = data.gear || null;
             msg.action = data.action || null;
             msg.pending += data.reply || '（没有收到回复）';
@@ -349,7 +379,7 @@ async function send(text) {
         role: 'bot', text: '', pending: '',
         typing: true, streamDone: false,
         sources: [], suggestions: [],
-        level: 0, levelLabel: '', tools: [], gear: null, action: null, nav: null,
+        level: 0, levelLabel: '', tools: [], toolsUsed: [], gear: null, action: null, nav: null,
         reasoning: '', model: model.value
     });
     messages.value.push(botMsg);
@@ -533,19 +563,15 @@ async function send(text) {
                         </div>
 
                         <!-- 三级降级可视化：本条回答的级别 + 调用的工具 -->
-                        <div v-if="m.role === 'bot' && (m.levelLabel || (m.tools && m.tools.length))" class="ai-meta">
+                        <div v-if="m.role === 'bot' && (m.levelLabel || toolLabels(m).length)" class="ai-meta">
                             <span v-if="m.levelLabel" class="ai-level" :class="'lv' + m.level">
                                 <i class="fas fa-circle-nodes"></i>{{ m.levelLabel }}
                             </span>
                             <span v-if="m.model" class="ai-model-tag" :title="m.model">
                                 <i class="fas fa-microchip"></i>{{ modelLabel(m.model) }}
                             </span>
-                            <span v-for="tool in m.tools" :key="tool" class="ai-tool">
-                                <i class="fas" :class="{
-                                    'fa-moon': tool === 'moon-phase',
-                                    'fa-star-and-crescent': tool === 'tonight-sky',
-                                    'fa-location-arrow': tool === 'navigate'
-                                }"></i>{{ tool === 'moon-phase' ? '月相计算' : tool === 'tonight-sky' ? '今夜观星' : '页面导航' }}
+                            <span v-for="tool in toolLabels(m)" :key="tool.key" class="ai-tool" :class="{ 'tool-ok': tool.ok }">
+                                <i class="fas" :class="tool.icon"></i>{{ tool.label }}
                             </span>
                         </div>
 

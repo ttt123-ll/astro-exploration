@@ -63,7 +63,9 @@ const check = (n, c, e) => {
     /* ---------- 2. 装备导购面板 ---------- */
     console.log('\n=== 装备导购面板 ===');
     await p.evaluate(() => {
-        const cap = Array.from(document.querySelectorAll('.ai-cap-btn'))[0];
+        /* 能力卡片顺序会随功能调整，按文案定位「装备导购」卡片 */
+        const caps = Array.from(document.querySelectorAll('.ai-cap-btn'));
+        const cap = caps.find(x => /装备/.test(x.textContent)) || caps[0];
         if (cap) cap.click();
     });
     await sleep(500);
