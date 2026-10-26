@@ -606,6 +606,7 @@ Windows 下双击 **`查看提交记录.bat`** 可一键生成并在浏览器打
 | Git 提交历史 | ✅ | 76 次 Conventional Commits |
 | 环境变量模板 + 依赖清单 | ✅ | `.env.example`、`package.json`、`server/package.json` |
 | 技术文档 PDF（≤30 页） | ✅ | [docs/技术文档.pdf](docs/技术文档.pdf)（源文件 `docs/技术文档.md`） |
+| 作品介绍文档（7 项要求） | ✅ | [docs/作品介绍文档.pdf](docs/作品介绍文档.pdf)（DOCX 可编辑：`docs/作品介绍文档.docx`） |
 | 演示视频（5-8 分钟 / 1080p） | 🟡 | 脚本：[docs/演示视频脚本.md](docs/演示视频脚本.md)，需按脚本录制 |
 | 提交清单与评分对照 | ✅ | [docs/提交清单.md](docs/提交清单.md) |
 | 在线演示（可选加分） | ✅ | Cloudflare 临时隧道：启动方式见 [docs/在线演示.md](docs/在线演示.md)；当前地址见 `F:\离线分发包\在线演示地址.txt`（每次重启会变） |
