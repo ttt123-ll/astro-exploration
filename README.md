@@ -419,11 +419,14 @@ AI 页连接栏提供模型切换，按问题复杂度选择：
 | 检索增强生成 | 配置 `AI_API_KEY` 时把 Top-K 片段注入提示词，要求【1】【2】角标引用 | `server/chat.js` |
 | 可溯源 | 角标 → 来源卡片（标题 + 站内路由），前端可点击跳转 | `client/src/views/AiAssistantView.vue` |
 | 可靠性 | 三级降级：大模型 → 本地知识库原文摘录 → 兜底引导 + 推荐问题 | `server/chat.js` |
-| 检索评估 | `tools/verify-rag.js`：10 条标注查询计算 Hit@1 / Hit@3 / MRR，并校验索引持久化 | `tools/verify-rag.js` |
+| 检索评估 | `tools/verify-rag.js`：30 条标注查询计算 Hit@1 / Hit@3 / MRR，并校验索引持久化 | `tools/verify-rag.js` |
 | 领域扩展：装备导购 | 预算 + 用途 → 主镜/赤道仪/相机/附件组合，含光学参数计算与预算约束（规则引擎，离线可用） | `server/rag/gear.js`、`server/rag/gearAdvisor.js` |
 | 领域扩展：多受众表达 | 同一知识用儿童 / 业余 / 专业三种讲法输出（提示词 + 本地降级文案双通道） | `server/chat.js`、`client/src/views/AiAssistantView.vue` |
 
-> 检索评估（ode tools/verify-rag.js，10 条标注查询）：**Hit@1 90% · Hit@3 100% · MRR 0.950**。
+> 检索评估（`node tools/verify-rag.js`，30 条标注查询）：**Hit@1 90% · Hit@3 100% · MRR 0.950**。
+>
+> 含义：10 个问题里 9 个的第一条来源就是正确页面；前三条来源必含正确答案；正确答案平均排在第 1 位附近。
+> 1024 维向量由本地哈希计算生成，不依赖外部 Embedding 服务，断网也能检索。
 >
 > 向量库状态可通过 `GET /api/chat/mode` 查看（维度、知识块数、索引来源 disk/built、文件大小）。
 
