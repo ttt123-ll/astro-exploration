@@ -1,4 +1,4 @@
-﻿# Cloudflare Quick Tunnel 一键启动脚本
+# Cloudflare Quick Tunnel 一键启动脚本
 # 用法：powershell -ExecutionPolicy Bypass -File tools\start-tunnel.ps1 [-Port 3001]
 param(
     [int]$Port = 3001
@@ -75,6 +75,13 @@ $addrFile = 'F:\离线分发包\在线演示地址.txt'
     "评审账号：admin / admin123",
     "停止隧道：Get-Process cloudflared | Stop-Process -Force"
 ) | Set-Content -Path $addrFile -Encoding UTF8
+
+# 自动刷新扫码二维码（隧道地址每次重启会变化）
+$nodeExe = 'E:\nodejs\node.exe'
+$qrScript = Join-Path $PSScriptRoot 'gen-mobile-qr.js'
+if ((Test-Path $nodeExe) -and (Test-Path $qrScript)) {
+    & $nodeExe $qrScript | Out-Host
+}
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Green
