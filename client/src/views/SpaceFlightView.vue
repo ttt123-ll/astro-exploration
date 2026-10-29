@@ -874,7 +874,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="flight" :class="{ embedded: props.embedded }">
+    <div class="flight" :class="{ embedded: props.embedded, 'panel-open': !!selected }">
         <canvas
             ref="cv"
             @mousedown="pDown" @mousemove="pMove" @mouseup="pUp" @mouseleave="pUp"

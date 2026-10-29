@@ -6130,17 +6130,28 @@ a, button, .gallery-item, .feature-card, .planet-card, .type-card, .cons-card, .
     .flight-ctl .ctl-label { font-size: 0.68rem !important; }
     .flight-ctl .ctl-range { width: 100% !important; }
 
-    /* 天体信息面板：贴底显示，避免遮挡星球 */
+    /* 天体信息面板：移动端改为底部可滚动面板，内容少时贴合内容高度，内容多时在面板内滚动 */
     .flight .body-panel {
         position: fixed !important;
         left: 0.5rem !important;
         right: 0.5rem !important;
-        bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
         top: auto !important;
+        bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
         width: auto !important;
         max-width: none !important;
-        z-index: 55;
+        transform: none !important;
+        max-height: calc(100dvh - 150px) !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        z-index: 90 !important;
+        padding: 1.2rem 1rem 1.1rem !important;
     }
+    /* 面板打开时隐藏 HUD、行星标签与底部控制条，避免遮挡和误触 */
+    .flight.panel-open .hud-tl,
+    .flight.panel-open .hud-tr,
+    .flight.panel-open .hud-hint,
+    .flight.panel-open .planet-labels,
+    .flight.panel-open .flight-ctl { display: none !important; }
     /* 小屏 3D 场景高度限制在一屏内，避免绝对定位元素被顶出 */
     .flight {
         height: calc(100dvh - 56px) !important;
