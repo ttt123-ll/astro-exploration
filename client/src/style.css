@@ -2390,6 +2390,91 @@ button {
     white-space: nowrap;
 }
 
+/* 竞赛中途退出按钮 + 二次确认弹窗 */
+.quiz-exit-btn {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.34rem 0.9rem;
+    border-radius: 50px;
+    border: 1px solid rgba(248, 113, 113, 0.45);
+    background: rgba(248, 113, 113, 0.12);
+    color: #fca5a5;
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.25s ease;
+}
+.quiz-exit-btn:hover {
+    border-color: #f87171;
+    color: #fff;
+    background: rgba(248, 113, 113, 0.22);
+}
+
+.quiz-exit-mask {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    background: rgba(3, 5, 10, 0.74);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.2rem;
+}
+.quiz-exit-dialog {
+    width: min(430px, 94vw);
+    border-radius: 20px;
+    padding: 1.8rem 1.6rem 1.4rem;
+    text-align: center;
+    background: linear-gradient(160deg, rgba(24, 32, 54, 0.98), rgba(9, 13, 24, 0.99));
+    border: 1px solid rgba(248, 113, 113, 0.32);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7), 0 0 40px rgba(248, 113, 113, 0.12);
+}
+.quiz-exit-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(248, 113, 113, 0.12);
+    border: 1px solid rgba(248, 113, 113, 0.35);
+    color: #fca5a5;
+    font-size: 1.4rem;
+}
+.quiz-exit-dialog h3 {
+    font-family: var(--font-title);
+    color: var(--color-gold);
+    font-size: 1.15rem;
+    margin-bottom: 0.7rem;
+}
+.quiz-exit-dialog p {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.9;
+    margin-bottom: 1.4rem;
+}
+.quiz-exit-dialog p b { color: #fca5a5; font-weight: 600; }
+.quiz-exit-actions {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.quiz-exit-actions .btn { min-width: 120px; justify-content: center; }
+.quiz-fade-enter-active, .quiz-fade-leave-active { transition: opacity 0.22s ease; }
+.quiz-fade-enter-from, .quiz-fade-leave-to { opacity: 0; }
+
+@media (max-width: 768px) {
+    .quiz-exit-btn { margin-left: 0; }
+    .quiz-exit-actions .btn { flex: 1; min-width: 0; }
+}
+
 .quiz-cat-tag {
     display: inline-block;
     padding: 0.22rem 0.9rem;

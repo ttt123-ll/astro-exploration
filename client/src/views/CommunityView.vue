@@ -47,6 +47,35 @@ const timerText = ref('00:00');
 const rankNote = ref('');
 let timer;
 
+/* 中途退出竞赛确认 */
+const exitOpen = ref(false);
+function askExit() {
+    if (stage.value !== 'run') return;
+    exitOpen.value = true;
+}
+function cancelExit() {
+    exitOpen.value = false;
+}
+function confirmExit() {
+    exitOpen.value = false;
+    clearInterval(timer);
+    // 不调用 upload()：中途退出不记录分数
+    stage.value = 'start';
+    idx.value = 0;
+    correct.value = 0;
+    streak.value = 0;
+    maxStreak.value = 0;
+    wrongList.value = [];
+    answered.value = false;
+    chosenIdx.value = -1;
+    elapsed.value = 0;
+    timerText.value = '00:00';
+    pool.value = [];
+}
+function onKeydown(e) {
+    if (e.key === 'Escape' && exitOpen.value) cancelExit();
+}
+
 const q = computed(() => pool.value[idx.value]);
 const letters = ['A', 'B', 'C', 'D'];
 
@@ -68,6 +97,7 @@ function start() {
     pool.value = shuffle(bank).slice(0, 20);
     idx.value = 0; correct.value = 0; streak.value = 0; maxStreak.value = 0; wrongList.value = [];
     answered.value = false; chosenIdx.value = -1; rankNote.value = '';
+    exitOpen.value = false;
     startTime.value = Date.now();
     stage.value = 'run';
     timer = setInterval(() => { elapsed.value = Date.now() - startTime.value; timerText.value = fmt(elapsed.value); }, 500);
@@ -210,12 +240,14 @@ function goLeaderboard() {
 }
 
 onMounted(() => {
+    window.addEventListener('keydown', onKeydown);
     if (route.query.play === '1') start();
     loadMessages();
     loadLb();
     pollTimer = setInterval(() => { if (live.value && !document.hidden) loadLb(true); }, 15000);
 });
 onBeforeUnmount(() => {
+    window.removeEventListener('keydown', onKeydown);
     clearInterval(timer);
     clearInterval(pollTimer);
     clearTimeout(flashTimer);
@@ -267,6 +299,9 @@ onBeforeUnmount(() => {
                     <span class="quiz-qcount">{{ idx + 1 }} / {{ pool.length }}</span>
                     <span class="quiz-score-chip"><i class="fas fa-star"></i> 得分 {{ correct }}</span>
                     <span class="quiz-timer"><i class="fas fa-stopwatch"></i> {{ timerText }}</span>
+                    <button class="quiz-exit-btn" type="button" @click="askExit" title="退出本次竞赛">
+                        <i class="fas fa-right-from-bracket"></i> 退出
+                    </button>
                 </div>
                 <span class="quiz-cat-tag"><i class="fas" :class="CAT_ICONS[q.c]"></i> {{ CAT_NAMES[q.c] }}</span>
                 <div class="quiz-question">{{ q.q }}</div>
@@ -330,6 +365,22 @@ onBeforeUnmount(() => {
                     <button class="btn btn-ghost" @click="goLeaderboard"><i class="fas fa-trophy"></i> 查看排行榜</button>
                 </div>
             </div>
+
+            <!-- 中途退出竞赛：二次确认 -->
+            <transition name="quiz-fade">
+                <div v-if="exitOpen" class="quiz-exit-mask" @click.self="cancelExit">
+                    <div class="quiz-exit-dialog" role="alertdialog" aria-modal="true"
+                         aria-labelledby="quiz-exit-title" aria-describedby="quiz-exit-desc">
+                        <div class="quiz-exit-icon"><i class="fas fa-triangle-exclamation"></i></div>
+                        <h3 id="quiz-exit-title">确定退出本次竞赛？</h3>
+                        <p id="quiz-exit-desc">中途退出后，本次答题过程将<b>不记录分数</b>，也不会进入排行榜。是否确定退出？</p>
+                        <div class="quiz-exit-actions">
+                            <button class="btn btn-ghost" type="button" @click="cancelExit">继续答题</button>
+                            <button class="btn btn-gold" type="button" @click="confirmExit">确定退出</button>
+                        </div>
+                    </div>
+                </div>
+            </transition>
         </div>
 
         <!-- 留言板 -->
