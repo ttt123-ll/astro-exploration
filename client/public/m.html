@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宇宙探索 · 移动端演示</title>
+<style>
+    :root { --bg: #05060a; --panel: #0d1322; --cyan: #9fd8f0; --gold: #e8d9b0; --text: #e8eefc; --muted: #8b98b5; }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0; min-height: 100vh; background:
+            radial-gradient(60% 50% at 50% 0%, rgba(70, 100, 180, .25), transparent 70%),
+            radial-gradient(40% 40% at 15% 80%, rgba(157, 140, 240, .18), transparent 70%),
+            var(--bg);
+        color: var(--text); font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+        display: flex; flex-direction: column; align-items: center; padding: 22px 16px 34px;
+    }
+    .top { width: min(1180px, 100%); display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; color: var(--gold); letter-spacing: .02em; }
+    .brand .orb { width: 28px; height: 28px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #cbd5e1 45%, #6b7a95); box-shadow: 0 0 18px rgba(206,216,240,.6); }
+    .brand small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; letter-spacing: .12em; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+        border: 1px solid rgba(159,212,248,.35); background: rgba(159,212,248,.08); color: var(--text);
+        border-radius: 999px; padding: 8px 14px; font-size: 13px; cursor: pointer; text-decoration: none;
+        font-family: inherit; transition: .25s;
+    }
+    .btn:hover { border-color: var(--cyan); color: #fff; background: rgba(159,212,248,.16); }
+    .hint { margin: 14px 0 6px; color: var(--muted); font-size: 12.5px; text-align: center; line-height: 1.7; }
+    .stage {
+        margin-top: 12px; width: 390px; max-width: 100%;
+        display: flex; flex-direction: column; align-items: center;
+    }
+    /* 手机外框 */
+    .phone {
+        width: 414px; max-width: 100%; padding: 14px 12px; border-radius: 46px;
+        background: linear-gradient(160deg, #1a2233, #0a0f1a 60%);
+        border: 1px solid rgba(159,212,248,.28);
+        box-shadow: 0 30px 80px rgba(0,0,0,.65), 0 0 0 6px rgba(255,255,255,.03) inset;
+        position: relative;
+    }
+    .phone::before {
+        content: ''; position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+        width: 108px; height: 22px; background: #05060a; border-radius: 0 0 16px 16px; z-index: 3;
+    }
+    .screen { width: 390px; height: 844px; max-width: 100%; border-radius: 36px; overflow: hidden; background: #05060a; position: relative; }
+    iframe { width: 390px; height: 844px; border: 0; display: block; }
+    .caption { margin-top: 16px; font-size: 12.5px; color: var(--muted); text-align: center; line-height: 1.8; }
+    .caption b { color: var(--cyan); font-weight: 500; }
+    .scale-note { display: none; }
+    @media (max-height: 1020px) {
+        .stage { transform: scale(.86); transform-origin: top center; margin-bottom: -120px; }
+    }
+    @media (max-width: 520px) {
+        .phone { display: none; }
+        .scale-note { display: block; }
+    }
+</style>
+</head>
+<body>
+    <div class="top">
+        <div class="brand">
+            <span class="orb"></span>
+            <span>宇宙探索 · 移动端演示<small>MOBILE PREVIEW</small></span>
+        </div>
+        <div class="actions">
+            <a class="btn" href="/" title="打开桌面版">桌面版</a>
+            <a class="btn" href="/" target="_blank" rel="noopener">新窗口打开手机版</a>
+            <button class="btn" type="button" id="copy-link">复制本页地址</button>
+        </div>
+    </div>
+
+    <p class="hint">这里是电脑上查看移动端效果的专用页面：以 390×844 手机尺寸加载网站，页面内即为移动端布局（底部 Tab、汉堡菜单）。</p>
+
+    <div class="stage">
+        <div class="phone">
+            <div class="screen">
+                <iframe src="/" title="宇宙探索移动端" loading="eager"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <p class="caption">
+        手机访问请直接扫码或打开 <b>/m</b>（会自动进入手机版）<br>
+        电脑访问 <b>/</b> 为桌面版，访问 <b>/m</b> 为本页手机预览
+    </p>
+    <p class="scale-note">当前屏幕较窄，请用手机直接访问，或打开桌面版查看。</p>
+
+    <script src="/m.js" defer></script>
+</body>
+</html>

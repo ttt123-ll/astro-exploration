@@ -118,6 +118,10 @@ if (fs.existsSync(distDir)) {
         }
     }));
 
+    // 移动端独立入口：/m 与 /mobile 打开手机预览页
+    // （电脑打开看到 390×844 的手机效果；真机访问会由页面脚本跳回响应式站点）
+    app.get(['/m', '/mobile'], (req, res) => res.redirect('/m.html'));
+
     // SPA 回退：入口 HTML 不缓存，保证发版后立即生效
     app.get('*', (req, res) => {
         res.setHeader('Cache-Control', 'no-cache');
