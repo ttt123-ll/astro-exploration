@@ -1,4 +1,4 @@
-// 移动端预览页交互（独立文件，避免 CSP 内联脚本限制）
+// 移动端预览页：真机跳转 + 按视口缩放手机框，保证外层不滚动
 (function () {
     // 真机访问 /m 时自动进入响应式手机版（避免“手机中的手机”）
     if (window.innerWidth < 768) {
@@ -6,18 +6,27 @@
         return;
     }
 
-    var copyBtn = document.getElementById('copy-link');
-    if (copyBtn) {
-        copyBtn.addEventListener('click', function () {
-            var url = location.origin + '/m';
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(url).then(function () {
-                    copyBtn.textContent = '已复制';
-                    setTimeout(function () { copyBtn.textContent = '复制本页地址'; }, 1500);
-                }, function () { prompt('复制下面的地址：', url); });
-            } else {
-                prompt('复制下面的地址：', url);
-            }
-        });
+    var phone = document.getElementById('phone');
+    if (!phone) return;
+
+    var PHONE_W = 414;
+    var PHONE_H = 872;
+    var MARGIN = 16;
+
+    function fit() {
+        var scale = Math.min(
+            (window.innerWidth - MARGIN * 2) / PHONE_W,
+            (window.innerHeight - MARGIN * 2) / PHONE_H,
+            1
+        );
+        // 避免极小窗口下缩放为 0
+        scale = Math.max(scale, 0.2);
+        phone.style.setProperty('--scale', String(scale));
     }
+
+    fit();
+    window.addEventListener('resize', fit, { passive: true });
+    window.addEventListener('orientationchange', function () {
+        setTimeout(fit, 120);
+    });
 })();
