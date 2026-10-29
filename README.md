@@ -608,6 +608,7 @@ Windows 下双击 **`查看提交记录.bat`** 可一键生成并在浏览器打
 | README（项目介绍/架构/运行指南） | ✅ | 本文档（团队信息按赛事要求单独提交，公开仓库不展示姓名） |
 | Git 提交历史 | ✅ | 76 次 Conventional Commits |
 | 环境变量模板 + 依赖清单 | ✅ | `.env.example`、`package.json`、`server/package.json` |
+| 数据库结构 | ✅ | [docs/schema.sql](docs/schema.sql)（6 张表建表语句 + 字段注释 + 24 条新闻种子数据） |
 | 技术文档 PDF（≤30 页） | ✅ | [docs/技术文档.pdf](docs/技术文档.pdf)（源文件 `docs/技术文档.md`） |
 | 作品介绍文档（7 项要求） | ✅ | [docs/作品介绍文档.pdf](docs/作品介绍文档.pdf)（DOCX 可编辑：`docs/作品介绍文档.docx`） |
 | 演示视频（5-8 分钟 / 1080p） | 🟡 | 脚本：[docs/演示视频脚本.md](docs/演示视频脚本.md)，需按脚本录制 |
