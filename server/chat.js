@@ -140,8 +140,8 @@ const PERSONA_BASE =
     '你必须结合前文推断真实意图（例：问过「木星有多大」后接着问「那它有几颗卫星」，' +
     '「它」指木星，不能理解成别的天体）。若当前问题不完整且无法从历史推断，' +
     '请用友善的语气请用户澄清，绝不凭空捏造。\n' +
-    '【语气风格】专业、耐心、充满探索欲；结构清晰，善用列表与 **粗体**；' +
-    '回答末尾可以自然用一句话引导用户继续提问（例如：「你想了解更多关于它的观测方法吗？」）。\n' +
+    '【本次受众优先】必须严格按【本次受众】指定的文体、术语密度与长度重新组织答案；' +
+    '即使历史对话中出现过其他风格的答案，也不要照抄或模仿，要以当前受众的要求为准。\n' +
     '【边界】只回答与天文、宇宙、航天、科学相关的问题。遇到无关问题（如问怎么做菜），' +
     '用一句俏皮话把话题引回宇宙（例如：「虽然我不会做红烧肉，但如果你有一块火星土壤，' +
     '我可以告诉你它不能用来做饭。」）。遇到科学界尚无定论的前沿问题，' +
@@ -151,19 +151,34 @@ const PERSONA_BASE =
 const SYSTEM_PROMPTS = {
     child:
         PERSONA_BASE +
-        '【本次受众：儿童】用小学生能听懂的话，多用比喻、句子要短；尽量不用专业术语，必须用时立刻用一句话解释；' +
-        '回答控制在 120 字以内。',
+        '【本次受众：儿童（6-10 岁）】\n' +
+        '- 只讲 3～5 句短句，总字数 80～150 字，像讲故事一样。\n' +
+        '- 至少用 1 个生活化比喻或拟人（如「木星像个超级大胖子」「太阳是一颗大火球」），可加 1 个 emoji。\n' +
+        '- 不用列表、不用粗体标题、不写公式；不要出现超过 4 位的大数字，必须提数字时用「能装下 1300 个地球」这类比较。\n' +
+        '- 尽量不用专业词；非用不可时立刻用「（就是……）」一句话解释。\n' +
+        '- 结尾用一个俏皮的问题或邀请，例如「你还想知道它身上的大红斑吗？」\n' +
+        '- 语气活泼、有画面感、可以有点拟声词；不要像教科书。',
     amateur:
         PERSONA_BASE +
-        '【本次受众：天文爱好者】结构清晰：先给结论，再讲参数与理由，必要时给出观测或理解成本；' +
-        '回答控制在 220 字以内。',
+        '【本次受众：天文爱好者（入门 1～3 年）】\n' +
+        '- 结构：先一句话结论 → 3～5 个关键点（可用列表）→ 一句「理解/观测上的意义」。\n' +
+        '- 可以有少量专业词（如气态巨行星、公转周期、AU），但每个术语第一次出现时要用括号解释，例如「约 5.2 AU（天文单位，1 AU≈1.5 亿公里）」。\n' +
+        '- 给出关键数字和量级对比；不堆公式；总字数 220～320 字。\n' +
+        '- 语气像懂行的朋友，不居高临下；结尾给一个可以继续追问的方向。',
     pro:
         PERSONA_BASE +
-        '【本次受众：有经验的天文爱好者与从业者】可以使用专业术语，给出规格、数量级、误差与取舍权衡；' +
-        '不确定的数据要明确说明不确定性；回答控制在 300 字以内。'
+        '【本次受众：专业人士 / 有经验的天文爱好者】\n' +
+        '- 结构：结论 → 关键参数（含单位、不确定度或数据来源差异）→ 物理机制/内部结构 → 观测或研究含义。\n' +
+        '- 使用专业术语与定量表达：数量级、比较、必要公式（说明变量含义）；例如质量 1.898×10²⁷ kg、约 318 个地球质量。\n' +
+        '- 对资料中可能过时、口径不一致或有争议的数据，要明确指出不确定性，不要简单复述。\n' +
+        '- 总字数 350～550 字；不面向初学者做过多比喻，除非用于快速量级说明。'
 };
 
 const AUDIENCE_KEYS = ['child', 'amateur', 'pro'];
+const AUDIENCE_MAX_TOKENS = { child: 420, amateur: 780, pro: 1400 };
+function maxTokensFor(audience) {
+    return AUDIENCE_MAX_TOKENS[audience] || 700;
+}
 function normalizeAudience(v) {
     return AUDIENCE_KEYS.includes(v) ? v : 'amateur';
 }
@@ -186,19 +201,30 @@ function composeFromChunks(chunks, audience) {
         return (m ? m[0] : String(s || '')).trim();
     };
 
+    // 儿童：短句 + 一句比喻式引导，不堆原文
     if (audience === 'child') {
         const top = chunks.slice(0, 2);
-        const body = top.map((c, i) => `【${i + 1}】${firstSentence(c.text)}`).join('\n');
-        return `简单说：\n${body}\n（这是站内资料里的说法，角标对应下面来源）`;
+        const body = top.reduce((acc, c) => {
+            const s = firstSentence(c.text);
+            return acc.includes(s) ? acc : acc.concat(s);
+        }, []).map((s, i) => `【${i + 1}】${s}`).join('\n');
+        return `🌟 小朋友版本（离线知识库）：\n${body}\n` +
+            '用一句简单的话说：这就是站内资料里的答案。你还想知道更多好玩的，可以接着问我呀～';
     }
+    // 专业：保留原文摘录与完整信息，便于核对
     if (audience === 'pro') {
         const top = chunks.slice(0, 4);
-        const body = top.map((c, i) => `【${i + 1}】${c.text}`).join('\n');
-        return `检索到的站内资料（原文摘录，可按角标核对）：\n${body}`;
+        const body = top.map((c, i) => `【${i + 1}】${c.text}`).join('\n\n');
+        return `【检索资料原文 · 离线知识库（可按角标核对）】\n${body}\n\n` +
+            '【提示】以上为站内原文摘录，定量数据与口径请结合来源页面核对；离线模式未做二次归纳。';
     }
+    // 业余：结论 + 关键点 + 术语提示，兼顾可读与信息量
     const top = chunks.slice(0, 3);
-    const body = top.map((c, i) => `【${i + 1}】${c.text}`).join('\n');
-    return `根据站内天文资料：\n${body}\n（以上为本地知识库原文摘录，角标对应下方来源）`;
+    const points = top.map((c, i) => `【${i + 1}】${firstSentence(c.text)}`).join('\n');
+    return `【结论】${firstSentence(top[0] && top[0].text)}\n` +
+        `【关键资料】\n${points}\n` +
+        '【阅读提示】遇到专业名词，可以先看角标对应的来源原文；需要我展开解释某个术语，也可以直接问。\n' +
+        '（当前为离线知识库模式，回答来自站内资料摘录）';
 }
 
 /* 第 3 级降级：知识库无命中时的引导语 */
@@ -354,7 +380,7 @@ async function streamReply(message, sessionId, audienceInput, handlers, opts = {
             { role: 'user', content: (toolNote ? '【工具计算结果（已展示给用户，请勿重复原文，直接基于结果解释与补充）】\n' + toolNote + '\n\n' : '') + ctx + q }
         ];
         let streamed = '';
-        const ok = await llmChatStream(messages, 500, t => { streamed += t; delta(t); }, requestKey, model, reasoning);
+        const ok = await llmChatStream(messages, maxTokensFor(audience), t => { streamed += t; delta(t); }, requestKey, model, reasoning);
         if (ok && streamed.trim()) {
             const parsed = parseCitations(streamed, sources);
             finish(parsed.text, {
@@ -468,7 +494,7 @@ async function reply(message, sessionId, audienceInput, opts = {}) {
             ...history.slice(-8),
             { role: 'user', content: (toolNote ? '【工具计算结果】\n' + toolNote + '\n\n' : '') + ctx + q }
         ];
-        answer = await llmChat(messages, 500, requestKey, model);
+        answer = await llmChat(messages, maxTokensFor(audience), requestKey, model);
         if (answer) level = 1;
     }
 
