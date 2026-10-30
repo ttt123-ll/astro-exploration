@@ -52,3 +52,9 @@ server/rag/.local-index.json
 
 # 临时文档渲染目录
 .dsh-office-*/
+
+# 文档转换产生的中间文件
+docs/*.conversion_profile.json
+docs/*_files/
+docs/作品介绍文档.md
+docs/使用指南.md
