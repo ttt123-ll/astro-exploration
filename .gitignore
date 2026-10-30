@@ -49,3 +49,6 @@ client/*.timestamp-*.mjs
 *.zip
 # RAG 向量索引（构建期生成，不入库）
 server/rag/.local-index.json
+
+# 临时文档渲染目录
+.dsh-office-*/
