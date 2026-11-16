@@ -419,11 +419,11 @@ AI 页连接栏提供模型切换，按问题复杂度选择：
 | 检索增强生成 | 配置 `AI_API_KEY` 时把 Top-K 片段注入提示词，要求【1】【2】角标引用 | `server/chat.js` |
 | 可溯源 | 角标 → 来源卡片（标题 + 站内路由），前端可点击跳转 | `client/src/views/AiAssistantView.vue` |
 | 可靠性 | 三级降级：大模型 → 本地知识库原文摘录 → 兜底引导 + 推荐问题 | `server/chat.js` |
-| 检索评估 | `tools/verify-rag.js`：30 条标注查询计算 Hit@1 / Hit@3 / MRR，并校验索引持久化 | `tools/verify-rag.js` |
+| 检索评估 | `tools/verify-rag.js`：10 条标注查询计算 Hit@1 / Hit@3 / MRR，并校验索引持久化 | `tools/verify-rag.js` |
 | 领域扩展：装备导购 | 预算 + 用途 → 主镜/赤道仪/相机/附件组合，含光学参数计算与预算约束（规则引擎，离线可用） | `server/rag/gear.js`、`server/rag/gearAdvisor.js` |
 | 领域扩展：多受众表达 | 同一知识用儿童 / 业余 / 专业三种讲法输出（提示词 + 本地降级文案双通道） | `server/chat.js`、`client/src/views/AiAssistantView.vue` |
 
-> 检索评估（`node tools/verify-rag.js`，30 条标注查询）：**Hit@1 90% · Hit@3 100% · MRR 0.950**。
+> 检索评估（`node tools/verify-rag.js`，10 条标注查询）：**Hit@1 90% · Hit@3 100% · MRR 0.950**。
 >
 > 含义：10 个问题里 9 个的第一条来源就是正确页面；前三条来源必含正确答案；正确答案平均排在第 1 位附近。
 > 1024 维向量由本地哈希计算生成，不依赖外部 Embedding 服务，断网也能检索。
@@ -599,7 +599,7 @@ Windows 下双击 **`查看提交记录.bat`** 可一键生成并在浏览器打
 **主要工作内容**：
 
 1. 需求分析与技术选型，确定 Vue 3 + Express + MySQL 架构
-2. 数据库设计（5 张表）与后端 API 开发（认证、成绩、新闻、留言、后台）
+2. 数据库设计（6 张表）与后端 API 开发（认证、成绩、新闻、留言、后台）
 3. 前端页面开发与 3D 交互实现（星球投影、遨游太空）
 4. 安全加固（httpOnly Cookie、helmet、限流、验证码）与性能优化（预压缩、强缓存）
 5. 容器化与离线分发方案，编写自动化回归测试
@@ -614,16 +614,16 @@ Windows 下双击 **`查看提交记录.bat`** 可一键生成并在浏览器打
 | 材料 | 状态 | 位置 / 说明 |
 |---|---|---|
 | 代码仓库 | ✅ | GitHub Public：https://github.com/ttt123-ll/astro-exploration |
-| README（项目介绍/架构/运行指南） | ✅ | 本文档（团队信息按赛事要求单独提交，公开仓库不展示姓名） |
-| Git 提交历史 | ✅ | 76 次 Conventional Commits |
+| README（项目介绍/架构/运行指南） | ✅ | 本文档（团队信息见报名表；公开仓库展示角色分工） |
+| Git 提交历史 | ✅ | 96 次 Conventional Commits |
 | 环境变量模板 + 依赖清单 | ✅ | `.env.example`、`package.json`、`server/package.json` |
 | 数据库结构 | ✅ | [docs/schema.sql](docs/schema.sql)（6 张表建表语句 + 字段注释 + 24 条新闻种子数据） |
 | 技术文档 PDF（≤30 页） | ✅ | [docs/技术文档.pdf](docs/技术文档.pdf)（源文件 `docs/技术文档.md`） |
-| 作品介绍文档（7 项要求） | ✅ | [docs/作品介绍文档.pdf](docs/作品介绍文档.pdf)（DOCX 可编辑：`docs/作品介绍文档.docx`） |
+| 作品介绍文档（7 项要求） | ✅ | [docs/作品介绍文档.pdf](docs/作品介绍文档.pdf)（最终提交版 13 页；DOCX 可编辑：`docs/作品介绍文档.docx`） |
 | 使用指南 | ✅ | [docs/使用指南.pdf](docs/使用指南.pdf)（DOCX 可编辑：`docs/使用指南.docx`） |
-| 演示视频（5-8 分钟 / 1080p） | 🟡 | 脚本：[docs/演示视频脚本.md](docs/演示视频脚本.md)，需按脚本录制 |
+| 演示视频（5-8 分钟 / 1080p） | ✅ | 已录制 5 分 05 秒；提交链接见报名表/提交材料 |
 | 提交清单与评分对照 | ✅ | [docs/提交清单.md](docs/提交清单.md) |
-| 在线演示（可选加分） | ✅ | Cloudflare 临时隧道：启动方式见 [docs/在线演示.md](docs/在线演示.md)；当前地址见 `F:\离线分发包\在线演示地址.txt`（每次重启会变） |
+| 在线演示（可选加分） | ⚪ | 本次提交不提供公网地址；请使用免安装演示包或 Docker 离线包本地访问。如需公网演示，可按 [docs/在线演示.md](docs/在线演示.md) 自行启动 |
 | AI 技术亮点（Function Calling） | ✅ | 5 个工具 + 规划调用，见「六·四、AI Function Calling」 |
 
 **评审测试账号**：`admin / admin123`（管理员，可体验后台与全部功能）；普通用户可在注册页自行注册（需绑定邮箱）。
